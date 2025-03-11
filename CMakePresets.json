@@ -66,7 +66,7 @@
         "lhs": "${hostSystemName}",
         "rhs": "Linux"
       },
-      "binaryDir": "${sourceDir}/build_ubuntu",
+      "binaryDir": "${sourceDir}/build",
       "generator": "Ninja",
       "warnings": {"dev": true, "deprecated": true},
       "cacheVariables": {

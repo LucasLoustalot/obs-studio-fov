@@ -1,6 +1,7 @@
 # OBS CMake bootstrap module
 
 include_guard(GLOBAL)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Map fallback configurations for optimized build configurations
 # gersemi: off

@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.28...3.30)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCOPE)
 
 project(obs-studio VERSION ${OBS_VERSION_CANONICAL})
