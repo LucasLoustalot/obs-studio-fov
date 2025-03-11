@@ -1,0 +1,36 @@
+name: Build OBS-FOV
+description: OBS-FOV Build
+on:
+  push:
+    branches-ignore:
+      - "ga-ignore-*"
+
+jobs:
+  check_program_compilation_linux:
+    name: Build on linux
+    runs-on: [ self-hosted, linux, x64 ]
+
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: ./.github/scripts/FOV/build.sh
+
+  # check_program_compilation_windows:
+  #   name: Build on windows
+  #   runs-on: [ self-hosted, windows, x64 ]
+  #   timeout-minutes: 5
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: true
+  #     - name: build
+  #       run: ./tools/build-windows.ps1
+  #     - name: clean
+  #       run: ./tools/clean.ps1
+
+
+
