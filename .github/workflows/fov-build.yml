@@ -7,7 +7,7 @@ on:
 
 jobs:
   check_program_compilation_linux:
-    name: Build on linux
+    name: Build on Linux
     runs-on: [ self-hosted, linux, x64 ]
 
     timeout-minutes: 10
@@ -16,21 +16,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build
-        run: ./.github/scripts/FOV/build.sh
+        run: ./.github/scripts/FOV/build_linux.sh
 
-  # check_program_compilation_windows:
-  #   name: Build on windows
-  #   runs-on: [ self-hosted, windows, x64 ]
-  #   timeout-minutes: 5
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
-  #       with:
-  #         submodules: true
-  #     - name: build
-  #       run: ./tools/build-windows.ps1
-  #     - name: clean
-  #       run: ./tools/clean.ps1
+  check_program_compilation_windows:
+    name: Build on Windows
+    runs-on: [ self-hosted, windows, x64 ]
 
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-
+      - name: Build
+        run: ./.github/scripts/FOV/build_windows.ps1
