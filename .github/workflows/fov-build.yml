@@ -7,10 +7,10 @@ on:
 
 jobs:
   check_program_compilation_linux:
-    name: Build on Linux
+    name: FOV - Build on Linux
     runs-on: [ self-hosted, linux, x64 ]
 
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,10 +19,10 @@ jobs:
         run: ./.github/scripts/FOV/build_linux.sh
 
   check_program_compilation_windows:
-    name: Build on Windows
+    name: FOV - Build on Windows
     runs-on: [ self-hosted, windows, x64 ]
 
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
