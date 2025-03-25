@@ -1,0 +1,25 @@
+name: Mirror Repository - OBS-FOV
+
+on:
+  push:
+    branches-ignore:
+      - "ga-ignore-*"
+
+jobs:
+    mirror_repo:
+        name: Mirror Repository
+        runs-on: [ self-hosted, linux, x64 ]
+        steps:
+            - name: Push generated webpage to another repository
+              uses: nkoppel/push-files-to-another-repository@v1.1.4
+              env:
+                API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+              with:
+                source-files: '*'
+                destination-username: 'EpitechPromo2027'
+                destination-repository: 'G-EIP-600-TLS-6-1-eip-raphael.scandella'
+                destination-branch: 'repo/OBS-FOV'
+                destination-directory: 'software'
+                commit-username: 'github-actions[bot]'
+                commit-email: 'github-actions[bot]@users.noreply.github.com'
+                commit-message: 'Sync OBS-FOV Commits'
