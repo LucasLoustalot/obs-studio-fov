@@ -284,8 +284,6 @@ OBSBasic::OBSBasic(QWidget *parent) : OBSMainWindow(parent), undo_s(ui), ui(new 
 
 	connect(controls, &OBSBasicControls::SettingsButtonClicked, this, &OBSBasic::on_action_Settings_triggered);
 
-	connect(controls, &OBSBasicControls::ExitButtonClicked, this, &QMainWindow::close);
-
 	startingDockLayout = saveState();
 
 	statsDock = new OBSDock();
@@ -1035,14 +1033,14 @@ void OBSBasic::OBSInit()
 			disableSaving++;
 		}
 
-		disableSaving--;
 		if (foundCollection || configuredCollection) {
+			disableSaving--;
 			OnEvent(OBS_FRONTEND_EVENT_SCENE_COLLECTION_LIST_CHANGED);
 			OnEvent(OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGED);
+			OnEvent(OBS_FRONTEND_EVENT_SCENE_CHANGED);
+			OnEvent(OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED);
+			disableSaving++;
 		}
-		OnEvent(OBS_FRONTEND_EVENT_SCENE_CHANGED);
-		OnEvent(OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED);
-		disableSaving++;
 	}
 
 	loaded = true;
