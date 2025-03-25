@@ -8,9 +8,9 @@ on:
 jobs:
     mirror_repo:
         name: Mirror Repository
-        runs-on: [ self-hosted, linux, x64 ]
+        runs-on: Linux
         steps:
-            - name: Push generated webpage to another repository
+            - name: Update OBS-FOV on EPITECH Repository
               uses: nkoppel/push-files-to-another-repository@v1.1.4
               env:
                 API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
@@ -18,7 +18,7 @@ jobs:
                 source-files: '*'
                 destination-username: 'EpitechPromo2027'
                 destination-repository: 'G-EIP-600-TLS-6-1-eip-raphael.scandella'
-                destination-branch: 'repo/OBS-FOV'
+                destination-branch: 'repo-OBS-FOV'
                 destination-directory: 'software'
                 commit-username: 'github-actions[bot]'
                 commit-email: 'github-actions[bot]@users.noreply.github.com'
