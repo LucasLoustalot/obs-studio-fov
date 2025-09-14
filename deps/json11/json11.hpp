@@ -55,6 +55,7 @@
 #include <map>
 #include <memory>
 #include <initializer_list>
+#include <cstdint> // Pour les nouvelles versions de G++
 
 #ifdef _MSC_VER
     #if _MSC_VER <= 1800 // VS 2013
