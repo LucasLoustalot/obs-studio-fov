@@ -1669,26 +1669,16 @@
             ]
         },
         {
-            "name": "LOCO",
-            "servers": [
-                {
-                    "name": "Default",
-                    "url": "rtmp://ivory-ingest.getloconow.com:1935/stream"
-                }
+            "name": "niconico (ニコニコ生放送)",
+            "more_info_link": "https://qa.nicovideo.jp/faq/show/701",
+            "alt_names": [
+                "niconico, premium member (ニコニコ生放送 プレミアム会員)",
+                "niconico, free member (ニコニコ生放送 一般会員)"
             ],
-            "recommended": {
-                "keyint": 2
-            },
-            "supported video codecs": [
-                "h264"
-            ]
-        },
-        {
-            "name": "niconico, premium member (ニコニコ生放送 プレミアム会員)",
             "servers": [
                 {
                     "name": "Default",
-                    "url": "rtmp://aliveorigin.dmc.nico/named_input"
+                    "url": "rtmp://liveorigin.dlive.nicovideo.jp/live/input"
                 }
             ],
             "recommended": {
@@ -1696,25 +1686,6 @@
                 "profile": "high",
                 "max audio bitrate": 192,
                 "max video bitrate": 5808,
-                "x264opts": "tune=zerolatency"
-            },
-            "supported video codecs": [
-                "h264"
-            ]
-        },
-        {
-            "name": "niconico, free member (ニコニコ生放送 一般会員)",
-            "servers": [
-                {
-                    "name": "Default",
-                    "url": "rtmp://aliveorigin.dmc.nico/named_input"
-                }
-            ],
-            "recommended": {
-                "keyint": 2,
-                "profile": "high",
-                "max audio bitrate": 96,
-                "max video bitrate": 904,
                 "x264opts": "tune=zerolatency"
             },
             "supported video codecs": [
@@ -2134,33 +2105,8 @@
                 }
             ],
             "supported video codecs": [
-                "h264"
-            ]
-        },
-        {
-            "name": "Volume.com",
-            "stream_key_link": "https://volume.com/b?show_key=1&webrtc=0",
-            "servers": [
-                {
-                    "name": "Default - Recommended",
-                    "url": "rtmp://live.volume.com/live-origin"
-                },
-                {
-                    "name": "US - West",
-                    "url": "rtmp://live-pdx.volume.com/live-origin"
-                },
-                {
-                    "name": "US - East",
-                    "url": "rtmp://live-ash.volume.com/live-origin"
-                }
-            ],
-            "recommended": {
-                "keyint": 2,
-                "max video bitrate": 20000,
-                "max fps": 60
-            },
-            "supported video codecs": [
-                "h264"
+                "h264",
+                "hevc"
             ]
         },
         {
@@ -2222,26 +2168,6 @@
                     "url": "rtmp://tx.push.yximgs.com/live/"
                 }
             ],
-            "supported video codecs": [
-                "h264"
-            ]
-        },
-        {
-            "name": "Playeur",
-            "alt_names": [
-                "Utreon"
-            ],
-            "servers": [
-                {
-                    "name": "Default",
-                    "url": "rtmp://live.playeur.com:5222/app"
-                }
-            ],
-            "recommended": {
-                "keyint": 2,
-                "max video bitrate": 5000,
-                "max audio bitrate": 160
-            },
             "supported video codecs": [
                 "h264"
             ]
@@ -2463,24 +2389,6 @@
             ]
         },
         {
-            "name": "Live Streamer Cafe",
-            "more_info_link": "https://livestreamercafe.com/help.php",
-            "stream_key_link": "https://livestreamercafe.com/profile.php",
-            "servers": [
-                {
-                    "name": "Live Streamer Cafe Server",
-                    "url": "rtmp://tophicles.com/live"
-                }
-            ],
-            "recommended": {
-                "keyint": 2,
-                "max video bitrate": 6000
-            },
-            "supported video codecs": [
-                "h264"
-            ]
-        },
-        {
             "name": "Enchant.events",
             "more_info_link": "https://docs.enchant.events/knowledge-base-y4pOb",
             "servers": [
@@ -2559,23 +2467,43 @@
             "name": "MasterStream.iR | مستراستریم | ری استریم و استریم همزمان",
             "common": false,
             "more_info_link": "https://masterstream.ir/webpage/page/docs",
-            "stream_key_link": "https://masterstream.ir/managestreams.php",
+            "stream_key_link": "https://masterstream.ir/control-panel/streaming",
             "servers": [
                 {
                     "name": "Iran Server 1 - Bandwidth Required",
-                    "url": "rtmp://live-vip1.masterstream.ir/live"
+                    "url": "rtmp://live1.masterstream.ir/live"
                 },
                 {
                     "name": "Iran Server 2 - Bandwidth Required",
-                    "url": "rtmp://live-vip2.masterstream.ir/live"
+                    "url": "rtmp://live2.masterstream.ir/live"
                 },
                 {
-                    "name": "Turkey Server 1",
-                    "url": "rtmp://tr-live1.masterstream.ir/live"
+                    "name": "Iran Server 3 - Bandwidth Required",
+                    "url": "rtmp://live3.masterstream.ir/live"
                 },
                 {
-                    "name": "Russia Server 1",
-                    "url": "rtmp://ru-live1.masterstream.ir/live"
+                    "name": "Iran Server 4 - Bandwidth Required",
+                    "url": "rtmp://live4.masterstream.ir/live"
+                },
+                {
+                    "name": "Iran Server 5 - Bandwidth Required",
+                    "url": "rtmp://live5.masterstream.ir/live"
+                },
+                {
+                    "name": "International Server 1",
+                    "url": "rtmp://ilive1.masterstream.ir/live"
+                },
+                {
+                    "name": "International Server 2",
+                    "url": "rtmp://ilive2.masterstream.ir/live"
+                },
+                {
+                    "name": "International Server 3",
+                    "url": "rtmp://ilive3.masterstream.ir/live"
+                },
+                {
+                    "name": "International Server 4",
+                    "url": "rtmp://ilive4.masterstream.ir/live"
                 }
             ],
             "protocol": "RTMP",
@@ -2703,44 +2631,8 @@
             "stream_key_link": "https://playstudio.shareplay.tv/stream/settings",
             "servers": [
                 {
-                    "name": "Default (Auto Detect)",
-                    "url": "rtmp://stream.shareplay.tv"
-                },
-                {
-                    "name": "Miami, Florida, USA",
-                    "url": "rtmp://live-us-mia-stream.shareplay.tv"
-                },
-                {
-                    "name": "Chicago, Illinois, USA",
-                    "url": "rtmp://live-us-ord-stream.shareplay.tv"
-                },
-                {
-                    "name": "Washington D.C., USA",
-                    "url": "rtmp://live-us-iad-stream.shareplay.tv"
-                },
-                {
-                    "name": "Los Angeles, California, USA",
-                    "url": "rtmp://live-us-lax-stream.shareplay.tv"
-                },
-                {
-                    "name": "Milan, Italy",
-                    "url": "rtmp://live-it-mil-stream.shareplay.tv"
-                },
-                {
-                    "name": "Toronto, Canada",
-                    "url": "rtmp://live-ca-yyz-stream.shareplay.tv"
-                },
-                {
-                    "name": "London, UK",
-                    "url": "rtmp://live-uk-lhr-stream.shareplay.tv"
-                },
-                {
                     "name": "Atlanta, Georgia, USA",
                     "url": "rtmp://live-us-atl-stream.shareplay.tv"
-                },
-                {
-                    "name": "Dallas, Texas, USA",
-                    "url": "rtmp://live-us-dfw-stream.shareplay.tv"
                 }
             ],
             "supported video codecs": [
@@ -3459,8 +3351,11 @@
         {
             "name": "Dolby Millicast",
             "common": false,
-            "more_info_link": "https://docs.dolby.io/streaming-apis/docs/using-obs",
+            "more_info_link": "https://docs.optiview.dolby.com/millicast/using-obs/",
             "stream_key_link": "https://streaming.dolby.io",
+            "multitrack_video_configuration_url": "https://director.millicast.com/api/multitrackvideo/configuration",
+            "multitrack_video_name": "Enhanced Broadcasting",
+            "multitrack_video_learn_more_link": "https://docs.optiview.dolby.com/millicast/obs-enhanced-broadcasting-multitrack-video/",
             "servers": [
                 {
                     "name": "Global (RTMPS)",
@@ -3576,7 +3471,9 @@
                     "url": "rtmp://ingest.vrcdn.live/live"
                 }
             ],
-            "supported video codecs": ["h264"],
+            "supported video codecs": [
+                "h264"
+            ],
             "recommended": {
                 "keyint": 1,
                 "max video bitrate": 6000

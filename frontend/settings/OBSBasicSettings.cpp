@@ -297,6 +297,7 @@ void RestrictResetBitrates(initializer_list<QComboBox *> boxes, int maxbitrate);
 #define SCROLL_CHANGED  &QSpinBox::valueChanged
 #define DSCROLL_CHANGED &QDoubleSpinBox::valueChanged
 #define TEXT_CHANGED    &QPlainTextEdit::textChanged
+#define SLIDER_CHANGED  &QSlider::valueChanged
 
 #define GENERAL_CHANGED &OBSBasicSettings::GeneralChanged
 #define STREAM1_CHANGED &OBSBasicSettings::Stream1Changed
@@ -368,6 +369,11 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	HookWidget(ui->multiviewLayout,      COMBO_CHANGED,  GENERAL_CHANGED);
 	HookWidget(ui->theme, 		     COMBO_CHANGED,  APPEAR_CHANGED);
 	HookWidget(ui->themeVariant,	     COMBO_CHANGED,  APPEAR_CHANGED);
+	HookWidget(ui->appearanceFontScale,  SLIDER_CHANGED, APPEAR_CHANGED);
+	HookWidget(ui->appearanceDensity1,   CHECK_CHANGED,  APPEAR_CHANGED);
+	HookWidget(ui->appearanceDensity2,   CHECK_CHANGED,  APPEAR_CHANGED);
+	HookWidget(ui->appearanceDensity3,   CHECK_CHANGED,  APPEAR_CHANGED);
+	HookWidget(ui->appearanceDensity4,   CHECK_CHANGED,  APPEAR_CHANGED);
 	HookWidget(ui->service,              COMBO_CHANGED,  STREAM1_CHANGED);
 	HookWidget(ui->server,               COMBO_CHANGED,  STREAM1_CHANGED);
 	HookWidget(ui->customServer,         EDIT_CHANGED,   STREAM1_CHANGED);
@@ -387,6 +393,7 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	HookWidget(ui->multitrackVideoStreamDumpEnable,            CHECK_CHANGED,  STREAM1_CHANGED);
 	HookWidget(ui->multitrackVideoConfigOverrideEnable,        CHECK_CHANGED,  STREAM1_CHANGED);
 	HookWidget(ui->multitrackVideoConfigOverride,              TEXT_CHANGED,   STREAM1_CHANGED);
+	HookWidget(ui->multitrackVideoAdditionalCanvas,            COMBO_CHANGED,   STREAM1_CHANGED);
 	HookWidget(ui->outputMode,           COMBO_CHANGED,  OUTPUTS_CHANGED);
 	HookWidget(ui->simpleOutputPath,     EDIT_CHANGED,   OUTPUTS_CHANGED);
 	HookWidget(ui->simpleNoSpace,        CHECK_CHANGED,  OUTPUTS_CHANGED);
@@ -523,7 +530,7 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 #ifdef _WIN32
 	HookWidget(ui->disableAudioDucking,  CHECK_CHANGED,  ADV_CHANGED);
 #endif
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(__APPLE__) || defined(__linux__)
 	HookWidget(ui->browserHWAccel,       CHECK_CHANGED,  ADV_RESTART);
 #endif
 	HookWidget(ui->filenameFormatting,   EDIT_CHANGED,   ADV_CHANGED);
@@ -602,31 +609,40 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 		ui->processPriority->addItem(QTStr(pri.name), pri.val);
 
 #else
+#if defined(__APPLE__) && defined(__aarch64__)
+	delete ui->adapterLabel;
+	delete ui->adapter;
+
+	ui->adapterLabel = nullptr;
+	ui->adapter = nullptr;
+#else
 	delete ui->rendererLabel;
 	delete ui->renderer;
 	delete ui->adapterLabel;
 	delete ui->adapter;
-	delete ui->processPriorityLabel;
-	delete ui->processPriority;
-	delete ui->enableNewSocketLoop;
-	delete ui->enableLowLatencyMode;
-	delete ui->hideOBSFromCapture;
-#ifdef __linux__
-	delete ui->browserHWAccel;
-	delete ui->sourcesGroup;
-#endif
-	delete ui->disableAudioDucking;
 
 	ui->rendererLabel = nullptr;
 	ui->renderer = nullptr;
 	ui->adapterLabel = nullptr;
 	ui->adapter = nullptr;
+#endif
+	delete ui->processPriorityLabel;
+	delete ui->processPriority;
+	delete ui->enableNewSocketLoop;
+	delete ui->enableLowLatencyMode;
+	delete ui->hideOBSFromCapture;
+#if !defined(__APPLE__) && !defined(__linux__)
+	delete ui->browserHWAccel;
+	delete ui->sourcesGroup;
+#endif
+	delete ui->disableAudioDucking;
+
 	ui->processPriorityLabel = nullptr;
 	ui->processPriority = nullptr;
 	ui->enableNewSocketLoop = nullptr;
 	ui->enableLowLatencyMode = nullptr;
 	ui->hideOBSFromCapture = nullptr;
-#ifdef __linux__
+#if !defined(__APPLE__) && !defined(__linux__)
 	ui->browserHWAccel = nullptr;
 	ui->sourcesGroup = nullptr;
 #endif
@@ -1048,6 +1064,7 @@ void OBSBasicSettings::LoadFormats()
 	ui->simpleOutRecFormat->addItem(FORMAT_STR("MP4"), "mp4");
 	ui->simpleOutRecFormat->addItem(FORMAT_STR("MOV"), "mov");
 	ui->simpleOutRecFormat->addItem(FORMAT_STR("hMP4"), "hybrid_mp4");
+	ui->simpleOutRecFormat->addItem(FORMAT_STR("hMOV"), "hybrid_mov");
 	ui->simpleOutRecFormat->addItem(FORMAT_STR("fMP4"), "fragmented_mp4");
 	ui->simpleOutRecFormat->addItem(FORMAT_STR("fMOV"), "fragmented_mov");
 	ui->simpleOutRecFormat->addItem(FORMAT_STR("TS"), "mpegts");
@@ -1057,6 +1074,7 @@ void OBSBasicSettings::LoadFormats()
 	ui->advOutRecFormat->addItem(FORMAT_STR("MP4"), "mp4");
 	ui->advOutRecFormat->addItem(FORMAT_STR("MOV"), "mov");
 	ui->advOutRecFormat->addItem(FORMAT_STR("hMP4"), "hybrid_mp4");
+	ui->advOutRecFormat->addItem(FORMAT_STR("hMOV"), "hybrid_mov");
 	ui->advOutRecFormat->addItem(FORMAT_STR("fMP4"), "fragmented_mp4");
 	ui->advOutRecFormat->addItem(FORMAT_STR("fMOV"), "fragmented_mov");
 	ui->advOutRecFormat->addItem(FORMAT_STR("TS"), "mpegts");
@@ -1375,16 +1393,21 @@ void OBSBasicSettings::LoadGeneralSettings()
 
 void OBSBasicSettings::LoadRendererList()
 {
-#ifdef _WIN32
+#if defined(_WIN32) || (defined(__APPLE__) && defined(__aarch64__))
 	const char *renderer = config_get_string(App()->GetAppConfig(), "Video", "Renderer");
-
-	ui->renderer->addItem(QT_UTF8("Direct3D 11"));
-	if (opt_allow_opengl || strcmp(renderer, "OpenGL") == 0)
-		ui->renderer->addItem(QT_UTF8("OpenGL"));
-
-	int idx = ui->renderer->findText(QT_UTF8(renderer));
-	if (idx == -1)
-		idx = 0;
+#ifdef _WIN32
+	ui->renderer->addItem(QString("Direct3D 11"), QString("Direct3D 11"));
+	if (opt_allow_opengl || strcmp(renderer, "OpenGL") == 0) {
+		ui->renderer->addItem(QString("OpenGL"), QString("OpenGL"));
+	}
+#else
+	ui->renderer->addItem(QString("OpenGL"), QString("OpenGL"));
+	ui->renderer->addItem(QTStr("Basic.Settings.Video.Renderer.Experimental").arg("Metal"), QString("Metal"));
+#endif
+	int index = ui->renderer->findData(QString(renderer));
+	if (index == -1) {
+		index = 0;
+	}
 
 	// the video adapter selection is not currently implemented, hide for now
 	// to avoid user confusion. was previously protected by
@@ -1394,7 +1417,7 @@ void OBSBasicSettings::LoadRendererList()
 	ui->adapter = nullptr;
 	ui->adapterLabel = nullptr;
 
-	ui->renderer->setCurrentIndex(idx);
+	ui->renderer->setCurrentIndex(index);
 #endif
 }
 
@@ -2586,7 +2609,7 @@ void OBSBasicSettings::LoadAdvancedSettings()
 	ui->enableLowLatencyMode->setChecked(enableLowLatencyMode);
 	ui->enableLowLatencyMode->setToolTip(QTStr("Basic.Settings.Advanced.Network.TCPPacing.Tooltip"));
 #endif
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(__APPLE__) || defined(__linux__)
 	bool browserHWAccel = config_get_bool(App()->GetAppConfig(), "General", "BrowserHWAccel");
 	ui->browserHWAccel->setChecked(browserHWAccel);
 	prevBrowserAccel = ui->browserHWAccel->isChecked();
@@ -3121,10 +3144,14 @@ void OBSBasicSettings::SaveAdvancedSettings()
 {
 	QString lastMonitoringDevice = config_get_string(main->Config(), "Audio", "MonitoringDeviceId");
 
-#ifdef _WIN32
-	if (WidgetChanged(ui->renderer))
-		config_set_string(App()->GetAppConfig(), "Video", "Renderer", QT_TO_UTF8(ui->renderer->currentText()));
+#if defined(_WIN32) || (defined(__APPLE__) && defined(__aarch64__))
+	if (WidgetChanged(ui->renderer)) {
+		config_set_string(App()->GetAppConfig(), "Video", "Renderer",
+				  QT_TO_UTF8(ui->renderer->currentData().toString()));
+	}
+#endif
 
+#ifdef _WIN32
 	std::string priority = QT_TO_UTF8(ui->processPriority->currentData().toString());
 	config_set_string(App()->GetAppConfig(), "General", "ProcessPriority", priority.c_str());
 	if (main->Active())
@@ -3133,7 +3160,7 @@ void OBSBasicSettings::SaveAdvancedSettings()
 	SaveCheckBox(ui->enableNewSocketLoop, "Output", "NewSocketLoopEnable");
 	SaveCheckBox(ui->enableLowLatencyMode, "Output", "LowLatencyEnable");
 #endif
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(__APPLE__) || defined(__linux__)
 	bool browserHWAccel = ui->browserHWAccel->isChecked();
 	config_set_bool(App()->GetAppConfig(), "General", "BrowserHWAccel", browserHWAccel);
 #endif
@@ -5588,9 +5615,9 @@ void OBSBasicSettings::UpdateMultitrackVideo()
 			ui->enableMultitrackVideo->setChecked(false);
 	}
 
-	// Enhanced Broadcasting works on Windows and Apple Silicon Macs.
+	// Enhanced Broadcasting works on Windows, Apple Silicon Macs, and Linux.
 	// For other OS variants, only enable the GUI controls if developer mode was invoked.
-#if !defined(_WIN32) && !(defined(__APPLE__) && defined(__aarch64__))
+#if !defined(_WIN32) && !(defined(__APPLE__) && defined(__aarch64__)) && !defined(__linux__)
 	available = available && MultitrackVideoDeveloperModeEnabled();
 #endif
 
@@ -5615,6 +5642,7 @@ void OBSBasicSettings::UpdateMultitrackVideo()
 							      ui->enableMultitrackVideo->isChecked());
 	ui->multitrackVideoMaximumVideoTracks->setEnabled(toggle_available && ui->enableMultitrackVideo->isChecked() &&
 							  !ui->multitrackVideoMaximumVideoTracksAuto->isChecked());
+	ui->multitrackVideoAdditionalCanvas->setEnabled(toggle_available && ui->enableMultitrackVideo->isChecked());
 
 	ui->multitrackVideoStreamDumpEnable->setVisible(available && MultitrackVideoDeveloperModeEnabled());
 	ui->multitrackVideoConfigOverrideEnable->setVisible(available && MultitrackVideoDeveloperModeEnabled());

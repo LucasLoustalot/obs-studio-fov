@@ -226,9 +226,13 @@ SimpleOutput::SimpleOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 			replayBufferSaved.Connect(signal, "saved", OBSReplayBufferSaved, this);
 		}
 
-		bool use_native = strcmp(recFormat, "hybrid_mp4") == 0;
-		fileOutput = obs_output_create(use_native ? "mp4_output" : "ffmpeg_muxer", "simple_file_output",
-					       nullptr, nullptr);
+		const char *mux = "ffmpeg_muxer";
+		if (strcmp(recFormat, "hybrid_mp4") == 0)
+			mux = "mp4_output";
+		else if (strcmp(recFormat, "hybrid_mov") == 0)
+			mux = "mov_output";
+
+		fileOutput = obs_output_create(mux, "simple_file_output", nullptr, nullptr);
 		if (!fileOutput)
 			throw "Failed to create recording output "
 			      "(simple output)";
@@ -674,14 +678,11 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 #ifdef _WIN32
 	bool enableNewSocketLoop = config_get_bool(main->Config(), "Output", "NewSocketLoopEnable");
 	bool enableLowLatencyMode = config_get_bool(main->Config(), "Output", "LowLatencyEnable");
-#else
-	bool enableNewSocketLoop = false;
 #endif
 	bool enableDynBitrate = config_get_bool(main->Config(), "Output", "DynamicBitrate");
 
 	if (multitrackVideo && multitrackVideoActive &&
-	    !multitrackVideo->HandleIncompatibleSettings(main, main->Config(), service, useDelay, enableNewSocketLoop,
-							 enableDynBitrate)) {
+	    !multitrackVideo->HandleIncompatibleSettings(main, main->Config(), service, enableDynBitrate)) {
 		multitrackVideoActive = false;
 		return false;
 	}
