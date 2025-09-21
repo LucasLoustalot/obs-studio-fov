@@ -22,7 +22,10 @@
 #include "ColorSelect.hpp"
 #include "OBSBasicControls.hpp"
 #include "OBSBasicStats.hpp"
+#include "plugin-manager/PluginManager.hpp"
 #include "VolControl.hpp"
+
+#include <obs-module.h>
 
 #ifdef YOUTUBE_ENABLED
 #include <docks/YouTubeAppDock.hpp>
@@ -34,6 +37,7 @@
 #include <dialogs/OBSBasicInteraction.hpp>
 #include <dialogs/OBSBasicProperties.hpp>
 #include <dialogs/OBSBasicTransform.hpp>
+#include <models/SceneCollection.hpp>
 #include <settings/OBSBasicSettings.hpp>
 #include <utility/QuickTransition.hpp>
 #include <utility/SceneRenameDelegate.hpp>
@@ -183,9 +187,9 @@ static void SetSafeModuleNames()
 	return;
 #else
 	string module;
-	stringstream modules(SAFE_MODULES);
+	stringstream modules_(SAFE_MODULES);
 
-	while (getline(modules, module, '|')) {
+	while (getline(modules_, module, '|')) {
 		/* When only disallowing third-party plugins, still add
 		 * "unsafe" bundled modules to the safe list. */
 		if (disable_3p_plugins || !unsafe_modules.count(module))
@@ -194,10 +198,30 @@ static void SetSafeModuleNames()
 #endif
 }
 
+static void SetCoreModuleNames()
+{
+#ifndef SAFE_MODULES
+	throw "SAFE_MODULES not defined";
+#else
+	std::string safeModules = SAFE_MODULES;
+	if (safeModules.empty()) {
+		throw "SAFE_MODULES is empty";
+	}
+	string module;
+	stringstream modules_(SAFE_MODULES);
+
+	while (getline(modules_, module, '|')) {
+		obs_add_core_module(module.c_str());
+	}
+#endif
+}
+
 extern void setupDockAction(QDockWidget *dock);
 
 OBSBasic::OBSBasic(QWidget *parent) : OBSMainWindow(parent), undo_s(ui), ui(new Ui::OBSBasic)
 {
+	collections = {};
+
 	setAttribute(Qt::WA_NativeWindow);
 
 #ifdef TWITCH_ENABLED
@@ -284,6 +308,40 @@ OBSBasic::OBSBasic(QWidget *parent) : OBSMainWindow(parent), undo_s(ui), ui(new 
 
 	connect(controls, &OBSBasicControls::SettingsButtonClicked, this, &OBSBasic::on_action_Settings_triggered);
 
+	/* Set up transitions combobox connections */
+	connect(this, &OBSBasic::TransitionAdded, this, [this](const QString &name, const QString &uuid) {
+		QSignalBlocker sb(ui->transitions);
+		ui->transitions->addItem(name, uuid);
+	});
+	connect(this, &OBSBasic::TransitionRenamed, this, [this](const QString &uuid, const QString &newName) {
+		QSignalBlocker sb(ui->transitions);
+		ui->transitions->setItemText(ui->transitions->findData(uuid), newName);
+	});
+	connect(this, &OBSBasic::TransitionRemoved, this, [this](const QString &uuid) {
+		QSignalBlocker sb(ui->transitions);
+		ui->transitions->removeItem(ui->transitions->findData(uuid));
+	});
+	connect(this, &OBSBasic::TransitionsCleared, this, [this]() {
+		QSignalBlocker sb(ui->transitions);
+		ui->transitions->clear();
+	});
+
+	connect(this, &OBSBasic::CurrentTransitionChanged, this, [this](const QString &uuid) {
+		QSignalBlocker sb(ui->transitions);
+		ui->transitions->setCurrentIndex(ui->transitions->findData(uuid));
+	});
+
+	connect(ui->transitions, &QComboBox::currentIndexChanged, this,
+		[this]() { SetCurrentTransition(ui->transitions->currentData().toString()); });
+
+	connect(this, &OBSBasic::TransitionDurationChanged, this, [this](int duration) {
+		QSignalBlocker sb(ui->transitionDuration);
+		ui->transitionDuration->setValue(duration);
+	});
+
+	connect(ui->transitionDuration, &QSpinBox::valueChanged, this,
+		[this](int value) { SetTransitionDuration(value); });
+
 	startingDockLayout = saveState();
 
 	statsDock = new OBSDock();
@@ -326,7 +384,7 @@ OBSBasic::OBSBasic(QWidget *parent) : OBSMainWindow(parent), undo_s(ui), ui(new 
 			ResizePreview(ovi.base_width, ovi.base_height);
 
 		UpdateContextBarVisibility();
-		UpdatePreviewScrollbars();
+		UpdatePreviewControls();
 		dpi = devicePixelRatioF();
 	};
 	dpi = devicePixelRatioF();
@@ -348,6 +406,22 @@ OBSBasic::OBSBasic(QWidget *parent) : OBSMainWindow(parent), undo_s(ui), ui(new 
 
 	connect(ui->previewScalingMode, &OBSPreviewScalingComboBox::currentIndexChanged, this,
 		&OBSBasic::PreviewScalingModeChanged);
+
+	/* Preview Controls */
+	connect(ui->previewXScrollBar, &QScrollBar::sliderMoved, ui->preview, &OBSBasicPreview::xScrollBarChanged);
+	connect(ui->previewYScrollBar, &QScrollBar::valueChanged, ui->preview, &OBSBasicPreview::yScrollBarChanged);
+
+	connect(ui->previewZoomInButton, &QPushButton::clicked, ui->preview, &OBSBasicPreview::increaseScalingLevel);
+	connect(ui->previewZoomOutButton, &QPushButton::clicked, ui->preview, &OBSBasicPreview::decreaseScalingLevel);
+
+	/* Preview Actions */
+	connect(ui->actionScaleWindow, &QAction::triggered, this, &OBSBasic::setPreviewScalingWindow);
+	connect(ui->actionScaleCanvas, &QAction::triggered, this, &OBSBasic::setPreviewScalingCanvas);
+	connect(ui->actionScaleOutput, &QAction::triggered, this, &OBSBasic::setPreviewScalingOutput);
+
+	connect(ui->actionPreviewZoomIn, &QAction::triggered, ui->preview, &OBSBasicPreview::increaseScalingLevel);
+	connect(ui->actionPreviewZoomOut, &QAction::triggered, ui->preview, &OBSBasicPreview::decreaseScalingLevel);
+	connect(ui->actionPreviewResetZoom, &QAction::triggered, ui->preview, &OBSBasicPreview::resetScalingLevel);
 
 	connect(this, &OBSBasic::CanvasResized, ui->previewScalingMode, &OBSPreviewScalingComboBox::CanvasResized);
 	connect(this, &OBSBasic::OutputResized, ui->previewScalingMode, &OBSPreviewScalingComboBox::OutputResized);
@@ -401,6 +475,10 @@ OBSBasic::OBSBasic(QWidget *parent) : OBSMainWindow(parent), undo_s(ui), ui(new 
 
 #ifdef __linux__
 	ui->actionE_xit->setShortcut(Qt::CTRL | Qt::Key_Q);
+#endif
+
+#ifndef ENABLE_IDIAN_PLAYGROUND
+	ui->idianPlayground->setVisible(false);
 #endif
 
 	auto addNudge = [this](const QKeySequence &seq, MoveDir direction, int distance) {
@@ -472,9 +550,7 @@ OBSBasic::OBSBasic(QWidget *parent) : OBSMainWindow(parent), undo_s(ui), ui(new 
 	QPoint newPos = curPos + statsDockPos;
 	statsDock->move(newPos);
 
-#ifdef HAVE_OBSCONFIG_H
 	ui->actionReleaseNotes->setVisible(true);
-#endif
 
 	ui->previewDisabledWidget->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(ui->enablePreviewButton, &QPushButton::clicked, this, &OBSBasic::TogglePreview);
@@ -494,11 +570,9 @@ OBSBasic::OBSBasic(QWidget *parent) : OBSMainWindow(parent), undo_s(ui), ui(new 
 
 static const double scaled_vals[] = {1.0, 1.25, (1.0 / 0.75), 1.5, (1.0 / 0.6), 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 0.0};
 
-#ifdef __APPLE__
-#define DEFAULT_CONTAINER "fragmented_mov"
-#elif OBS_RELEASE_CANDIDATE == 0 && OBS_BETA == 0
-#define DEFAULT_CONTAINER "mkv"
-#else
+#ifdef __APPLE__ // macOS
+#define DEFAULT_CONTAINER "hybrid_mov"
+#else // Windows/Linux
 #define DEFAULT_CONTAINER "hybrid_mp4"
 #endif
 
@@ -645,7 +719,7 @@ bool OBSBasic::InitBasicConfigDefaults()
 
 	config_set_default_string(activeConfiguration, "SimpleOutput", "FilePath", GetDefaultVideoSavePath().c_str());
 	config_set_default_string(activeConfiguration, "SimpleOutput", "RecFormat2", DEFAULT_CONTAINER);
-	config_set_default_uint(activeConfiguration, "SimpleOutput", "VBitrate", 2500);
+	config_set_default_uint(activeConfiguration, "SimpleOutput", "VBitrate", 6000);
 	config_set_default_uint(activeConfiguration, "SimpleOutput", "ABitrate", 160);
 	config_set_default_bool(activeConfiguration, "SimpleOutput", "UseAdvanced", false);
 	config_set_default_string(activeConfiguration, "SimpleOutput", "Preset", "veryfast");
@@ -677,7 +751,7 @@ bool OBSBasic::InitBasicConfigDefaults()
 	config_set_default_bool(activeConfiguration, "AdvOut", "FFOutputToFile", true);
 	config_set_default_string(activeConfiguration, "AdvOut", "FFFilePath", GetDefaultVideoSavePath().c_str());
 	config_set_default_string(activeConfiguration, "AdvOut", "FFExtension", "mp4");
-	config_set_default_uint(activeConfiguration, "AdvOut", "FFVBitrate", 2500);
+	config_set_default_uint(activeConfiguration, "AdvOut", "FFVBitrate", 6000);
 	config_set_default_uint(activeConfiguration, "AdvOut", "FFVGOPSize", 250);
 	config_set_default_bool(activeConfiguration, "AdvOut", "FFUseRescale", false);
 	config_set_default_bool(activeConfiguration, "AdvOut", "FFIgnoreCompat", false);
@@ -825,7 +899,7 @@ void OBSBasic::InitOBSCallbacks()
 {
 	ProfileScope("OBSBasic::InitOBSCallbacks");
 
-	signalHandlers.reserve(signalHandlers.size() + 9);
+	signalHandlers.reserve(signalHandlers.size() + 10);
 	signalHandlers.emplace_back(obs_get_signal_handler(), "source_create", OBSBasic::SourceCreated, this);
 	signalHandlers.emplace_back(obs_get_signal_handler(), "source_remove", OBSBasic::SourceRemoved, this);
 	signalHandlers.emplace_back(obs_get_signal_handler(), "source_activate", OBSBasic::SourceActivated, this);
@@ -849,6 +923,7 @@ void OBSBasic::InitOBSCallbacks()
 						  Qt::QueuedConnection);
 		},
 		this);
+	signalHandlers.emplace_back(obs_get_signal_handler(), "canvas_remove", OBSBasic::CanvasRemoved, this);
 }
 
 #define STARTUP_SEPARATOR "==== Startup complete ==============================================="
@@ -934,26 +1009,23 @@ void OBSBasic::OBSInit()
 #endif
 	struct obs_module_failure_info mfi;
 
-	/* Safe Mode disables third-party plugins so we don't need to add earch
-	 * paths outside the OBS bundle/installation. */
+	// Safe Mode disables third-party plugins so we don't need to add each path outside the OBS bundle/installation.
 	if (safe_mode || disable_3p_plugins) {
 		SetSafeModuleNames();
 	} else {
 		AddExtraModulePaths();
 	}
 
+	// Core modules are not allowed to be disabled by the user via plugin manager.
+	SetCoreModuleNames();
+
 	/* Modules can access frontend information (i.e. profile and scene collection data) during their initialization, and some modules (e.g. obs-websockets) are known to use the filesystem location of the current profile in their own code.
-     
+
      Thus the profile and scene collection discovery needs to happen before any access to that information (but after intializing global settings) to ensure legacy code gets valid path information.
      */
 	RefreshSceneCollections(true);
 
-	blog(LOG_INFO, "---------------------------------");
-	obs_load_all_modules2(&mfi);
-	blog(LOG_INFO, "---------------------------------");
-	obs_log_loaded_modules();
-	blog(LOG_INFO, "---------------------------------");
-	obs_post_load_modules();
+	App()->loadAppModules(mfi);
 
 	BPtr<char *> failed_modules = mfi.failed_modules;
 
@@ -1018,10 +1090,9 @@ void OBSBasic::OBSInit()
 		ProfileScope("OBSBasic::Load");
 		const std::string sceneCollectionName{
 			config_get_string(App()->GetUserConfig(), "Basic", "SceneCollection")};
-		const std::optional<OBSSceneCollection> configuredCollection =
+		std::optional<OBS::SceneCollection> configuredCollection =
 			GetSceneCollectionByName(sceneCollectionName);
-		const std::optional<OBSSceneCollection> foundCollection =
-			GetSceneCollectionByName(opt_starting_collection);
+		std::optional<OBS::SceneCollection> foundCollection = GetSceneCollectionByName(opt_starting_collection);
 
 		if (foundCollection) {
 			ActivateSceneCollection(foundCollection.value());
@@ -1204,22 +1275,22 @@ void OBSBasic::OBSInit()
 
 	ui->viewMenu->addSeparator();
 
-	AddProjectorMenuMonitors(ui->multiviewProjectorMenu, this, &OBSBasic::OpenMultiviewProjector);
-	connect(ui->viewMenu->menuAction(), &QAction::hovered, this, &OBSBasic::UpdateMultiviewProjectorMenu);
+	connect(ui->viewMenu->menuAction(), &QAction::hovered, this, &OBSBasic::updateMultiviewProjectorMenu);
+	OBSBasic::updateMultiviewProjectorMenu();
 
 	ui->sources->UpdateIcons();
 
 #if !defined(_WIN32)
+	delete ui->actionRepair;
+	ui->actionRepair = nullptr;
+#if !defined(__APPLE__)
 	delete ui->actionShowCrashLogs;
 	delete ui->actionUploadLastCrashLog;
 	delete ui->menuCrashLogs;
-	delete ui->actionRepair;
+	delete ui->actionCheckForUpdates;
 	ui->actionShowCrashLogs = nullptr;
 	ui->actionUploadLastCrashLog = nullptr;
 	ui->menuCrashLogs = nullptr;
-	ui->actionRepair = nullptr;
-#if !defined(__APPLE__)
-	delete ui->actionCheckForUpdates;
 	ui->actionCheckForUpdates = nullptr;
 #endif
 #endif
@@ -1300,6 +1371,13 @@ void OBSBasic::OnFirstLoad()
 }
 
 OBSBasic::~OBSBasic()
+{
+	if (!handledShutdown) {
+		applicationShutdown();
+	}
+}
+
+void OBSBasic::applicationShutdown() noexcept
 {
 	/* clear out UI event queue */
 	QApplication::sendPostedEvents(nullptr);
@@ -1397,6 +1475,8 @@ OBSBasic::~OBSBasic()
 	delete cef;
 	cef = nullptr;
 #endif
+
+	handledShutdown = true;
 }
 
 static inline int AttemptToResetVideo(struct obs_video_info *ovi)
@@ -1521,10 +1601,22 @@ int OBSBasic::ResetVideo()
 		OBSBasicStats::InitializeValues();
 		OBSProjector::UpdateMultiviewProjectors();
 
-		bool canMigrate = usingAbsoluteCoordinates ||
-				  (migrationBaseResolution && (migrationBaseResolution->first != ovi.base_width ||
-							       migrationBaseResolution->second != ovi.base_height));
-		ui->actionRemigrateSceneCollection->setEnabled(canMigrate);
+		if (!collections.empty()) {
+			const OBS::SceneCollection currentSceneCollection = OBSBasic::GetCurrentSceneCollection();
+
+			bool usingAbsoluteCoordinates = currentSceneCollection.getCoordinateMode() ==
+							OBS::SceneCoordinateMode::Absolute;
+			OBS::Rect migrationResolution = currentSceneCollection.getMigrationResolution();
+
+			OBS::Rect videoResolution = OBS::Rect(ovi.base_width, ovi.base_height);
+
+			bool canMigrate = usingAbsoluteCoordinates ||
+					  (!migrationResolution.isZero() && migrationResolution != videoResolution);
+
+			ui->actionRemigrateSceneCollection->setEnabled(canMigrate);
+		} else {
+			ui->actionRemigrateSceneCollection->setEnabled(false);
+		}
 
 		emit CanvasResized(ovi.base_width, ovi.base_height);
 		emit OutputResized(ovi.output_width, ovi.output_height);
@@ -1987,4 +2079,9 @@ OBSPromptResult OBSBasic::PromptForName(const OBSPromptRequest &request, const O
 	}
 
 	return result;
+}
+
+void OBSBasic::on_actionOpenPluginManager_triggered()
+{
+	App()->pluginManagerOpenDialog();
 }

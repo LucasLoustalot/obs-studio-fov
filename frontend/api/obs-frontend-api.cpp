@@ -311,11 +311,6 @@ void obs_frontend_add_tools_menu_item(const char *name, obs_frontend_cb callback
 		c->obs_frontend_add_tools_menu_item(name, callback, private_data);
 }
 
-void *obs_frontend_add_dock(void *dock)
-{
-	return !!callbacks_valid() ? c->obs_frontend_add_dock(dock) : nullptr;
-}
-
 bool obs_frontend_add_dock_by_id(const char *id, const char *title, void *widget)
 {
 	return !!callbacks_valid() ? c->obs_frontend_add_dock_by_id(id, title, widget) : false;
@@ -376,8 +371,8 @@ config_t *obs_frontend_get_user_config(void)
 
 config_t *obs_frontend_get_global_config(void)
 {
-	blog(LOG_WARNING,
-	     "DEPRECATION: obs_frontend_get_global_config is deprecated. Read from global or user configuration explicitly instead.");
+	blog(LOG_WARNING, "DEPRECATION: obs_frontend_get_global_config is deprecated. "
+			  "Use obs_frontend_get_app_config or obs_frontend_get_user_config explicitly instead.");
 	return !!callbacks_valid() ? c->obs_frontend_get_app_config() : nullptr;
 }
 
@@ -596,4 +591,20 @@ void obs_frontend_add_undo_redo_action(const char *name, const undo_redo_cb undo
 {
 	if (callbacks_valid())
 		c->obs_frontend_add_undo_redo_action(name, undo, redo, undo_data, redo_data, repeatable);
+}
+
+void obs_frontend_get_canvases(obs_frontend_canvas_list *canvas_list)
+{
+	if (callbacks_valid())
+		c->obs_frontend_get_canvases(canvas_list);
+}
+
+obs_canvas_t *obs_frontend_add_canvas(const char *name, obs_video_info *ovi, int flags)
+{
+	return !!callbacks_valid() ? c->obs_frontend_add_canvas(name, ovi, flags) : nullptr;
+}
+
+bool obs_frontend_remove_canvas(obs_canvas_t *canvas)
+{
+	return !!callbacks_valid() ? c->obs_frontend_remove_canvas(canvas) : false;
 }
