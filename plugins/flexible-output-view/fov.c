@@ -6,7 +6,7 @@
  * @date 2025-09-13
  */
 
-#include "obs/obs-frontend-api.h"
+#include <obs-frontend-api.h>
 #include "callback/signal.h"
 #include "obs.h"
 #include "util/base.h"
