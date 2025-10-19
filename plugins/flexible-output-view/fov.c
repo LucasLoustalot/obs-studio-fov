@@ -16,45 +16,61 @@
 #include <obs-module.h>
 #include <time.h>
 
-static struct fov {
-	obs_output_t *fov_out;
-	obs_service_t *fov_service;
-} fov_app;
-
-// #define blog(log_level, format, ...) blog(log_level, "[FOV: '%s'] " format, ##__VA_ARGS__)
-
 #define debug(format, ...) blog(LOG_DEBUG, "FOV: "format, ##__VA_ARGS__)
 #define info(format, ...) blog(LOG_INFO, "FOV: "format, ##__VA_ARGS__)
 #define warn(format, ...) blog(LOG_WARNING, "FOV: "format, ##__VA_ARGS__)
 
+static struct fov_system {
+	obs_output_t *fov_out;
+	obs_service_t *fov_service;
+} fov_app;
+
+typedef struct fov_service_internal_s {
+	obs_service_t *obs_service_ref;
+	obs_output_t *obs_output_ref;
+
+	void (*test_callback)(void);
+} fov_service_internal_t;
+
+typedef struct fov_output_internal_s {
+	obs_output_t *obs_output_ref;
+	obs_service_t *obs_associated_service_ref;
+} fov_output_internal_t;
+
 OBS_DECLARE_MODULE()
 // OBS_MODULE_USE_DEFAULT_LOCALE("flexible-output-view", "en-US")
+
 MODULE_EXPORT const char *obs_module_description(void)
 {
 	return "The flexible output view system";
 }
 
-// extern struct obs_service_info fov_service;
-// extern struct obs_output_info fov_output;
-
 const char *fov_service_get_name(void *type_data)
 {
 	(void)type_data;
-	return ("FlexibleOutputViewService");
+	return ("Flexible Output View Service");
+}
+
+void test_service_callback_from_output()
+{
+	debug("FOV service callback called from output receive packet");
 }
 
 void *fov_service_create(obs_data_t *settings, obs_service_t *service)
 {
 	(void)settings;
-	(void)service;
 	debug("Creation du service FOV");
-	return (bzalloc(10)); // Allouer la structure interne au module ici
+
+	fov_service_internal_t *fov_service = bzalloc(sizeof(fov_service_internal_t));
+	fov_service->obs_service_ref = service;
+	fov_service->test_callback = test_service_callback_from_output;
+	return (fov_service);
 }
 
 void fov_service_destroy(void *data)
 {
-	bfree(data);
 	debug("Destruction du service FOV");
+	bfree(data);
 }
 
 const char *fov_service_get_url(void *data)
@@ -117,7 +133,7 @@ bool fov_property_modified_t(obs_properties_t *props, obs_property_t *property, 
 	return (true);
 }
 
-static obs_properties_t *my_source_properties(void *data)
+static obs_properties_t *fov_source_properties(void *data)
 {
 	UNUSED_PARAMETER(data);
 
@@ -135,48 +151,53 @@ static obs_properties_t *my_source_properties(void *data)
 	return ppts;
 }
 
-bool fov_initialize(void *data, obs_output_t *output)
+bool fov_service_initialize(void *data, obs_output_t *output)
 {
 	UNUSED_PARAMETER(data);
 	UNUSED_PARAMETER(output);
-	debug("FOV is ready to stream");
+
+	debug("FOV service is initializing with output: %s", obs_output_get_name(output));
+
+	debug("FOV service is ready to stream");
 	return (true);
 }
 
-bool fov_can_connect(void *data)
+bool fov_service_can_connect(void *data)
 {
 	UNUSED_PARAMETER(data);
-	debug("FOV is can stream");
+	debug("FOV service can stream");
 	return (true);
 }
 
-void fov_activate(void *data, obs_data_t *settings)
+void fov_service_activate(void *data, obs_data_t *settings)
 {
 	UNUSED_PARAMETER(data);
 	UNUSED_PARAMETER(settings);
-	debug("FOV is activated");
+	debug("FOV service is activated");
 }
-void fov_deactivate(void *data)
+void fov_service_deactivate(void *data)
 {
 	UNUSED_PARAMETER(data);
-	debug("FOV is deactivated");
+	debug("FOV service is deactivated");
 }
 
-static const char *fov_get_username(void *data)
+static const char *fov_service_get_username(void *data)
 {
 	(void)data;
+	debug("FOV service get username");
 	return "stream1";
 }
 
-static const char *fov_get_password(void *data)
+static const char *fov_service_get_password(void *data)
 {
 	(void)data;
+	debug("FOV service get password");
 	return "stream1";
 }
 
-static const char *fov_get_connect_info(void *data, uint32_t type)
+static const char *fov_service_get_connect_info(void *data, uint32_t type)
 {
-	debug("FOV Get connect info");
+	debug("FOV service get connect info");
 
 	(void)data;
 	switch ((enum obs_service_connect_info)type) {
@@ -198,12 +219,12 @@ static const char *fov_get_connect_info(void *data, uint32_t type)
 	return NULL;
 }
 
-static void fov_apply_encoder_settings(void *data, obs_data_t *video_settings, obs_data_t *audio_settings)
+static void fov_service_apply_encoder_settings(void *data, obs_data_t *video_settings, obs_data_t *audio_settings)
 {
 	(void)data;
 	(void)video_settings;
 	(void)audio_settings;
-	debug("FOV Apply encoder");
+	debug("FOV service apply encoder");
 }
 
 struct obs_service_info fov_service = {.id = "flexible_output_view_service",
@@ -211,53 +232,72 @@ struct obs_service_info fov_service = {.id = "flexible_output_view_service",
 				       .create = fov_service_create,
 				       .destroy = fov_service_destroy,
 				       .update = fov_service_update,
-				       .get_properties = my_source_properties,
+				       .get_properties = fov_source_properties,
 				       .get_protocol = fov_service_get_protocol,
 				       .get_url = fov_service_get_url,
-				       .can_try_to_connect = fov_can_connect,
-				       .get_connect_info = fov_get_connect_info,
-				       .get_username = fov_get_username,
-				       .get_password = fov_get_password,
-				       .apply_encoder_settings = fov_apply_encoder_settings,
-				       .initialize = fov_initialize,
+				       .can_try_to_connect = fov_service_can_connect,
+				       .get_connect_info = fov_service_get_connect_info,
+				       .get_username = fov_service_get_username,
+				       .get_password = fov_service_get_password,
+				       .activate = fov_service_activate,
+				       .deactivate = fov_service_deactivate,
+				       .apply_encoder_settings = fov_service_apply_encoder_settings,
+				       .initialize = fov_service_initialize,
 				       .get_key = fov_service_get_key};
 
-bool fov_output_start(void *a)
+bool fov_output_start(void *fov_out_internal)
 {
-	(void)a;
+	fov_output_internal_t *fov_out = (fov_output_internal_t *)fov_out_internal;
+	obs_output_t *output = fov_out->obs_output_ref;
+
+	fov_out->obs_associated_service_ref = obs_output_get_service(fov_out->obs_output_ref);
+	obs_output_begin_data_capture(output, 0);
 
 	debug("FOV output start");
 	return (true);
 }
 
-void fov_output_stop(void *a, uint64_t b)
+void fov_output_stop(void *fov_out_internal, uint64_t ts)
 {
-	(void)a;
-	(void)b;
+	(void)ts;
+	fov_output_internal_t *fov_out = (fov_output_internal_t *)fov_out_internal;
 
+	obs_output_signal_stop(fov_out->obs_output_ref, OBS_OUTPUT_SUCCESS);
 	debug("FOV output stop");
 }
 
-void *fov_output_create(obs_data_t *a, obs_output_t *b)
+void *fov_output_create(obs_data_t *config, obs_output_t *output)
 {
-	(void)a;
-	(void)b;
+	(void)config;
 	debug("FOV output create");
-	return (bzalloc(10));
+
+	fov_output_internal_t *fovout = bzalloc(sizeof(fov_output_internal_t));
+	fovout->obs_output_ref = output;
+	return (fovout);
 }
 
-uint64_t fov_output_get_total_bytes(void *a)
+uint64_t fov_output_get_total_bytes(void *fov_out_internal)
 {
-	(void)a;
+	(void)fov_out_internal;
+	debug("FOV output get total bytes");
 	return (0);
 }
 
-void fov_output_encoded_packet(void *data, struct encoder_packet *packet)
+void fov_output_encoded_packet(void *fov_out_internal, struct encoder_packet *packet)
 {
-	(void)data;
 	(void)packet;
+	fov_output_internal_t *fov_out = (fov_output_internal_t *)fov_out_internal;
 
-	debug("FOV packet");
+	(void) fov_out;
+	// Comment envoyer les packets au service ?
+	// Est-ce le role de l'ouput d'envoyer les packets ou du service ?
+
+	// fov_service_internal_t *fov_service =
+		// (fov_service_internal_t *)(fov_out->obs_associated_service_ref);
+
+	// fov_service->test_callback();
+
+	debug("FOV output receives packet !!! ");
 	return;
 }
 
@@ -276,17 +316,17 @@ struct obs_output_info fov_output = {.id = "flexible_output_view_output",
 				     .encoded_video_codecs = "h264",
 				     .encoded_audio_codecs = "aac"};
 
-static void fov_start_output(void *data, calldata_t *calldata)
+static void fov_start_output(void *fov_out_internal, calldata_t *calldata)
 {
-	(void)data;
+	(void)fov_out_internal;
 	(void)calldata;
 
-	debug("Debut de l'ouput FOV");
+	debug("FOV output start");
 }
 
-static bool fov_list_sources(void *data, obs_source_t *source)
+static bool fov_list_sources(void *fov_out_internal, obs_source_t *source)
 {
-	(void)data;
+	(void)fov_out_internal;
 	debug("fov_list_sources FOV Source: %s", obs_source_get_name(source));
 
 	return (true);
@@ -296,15 +336,6 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 {
 	static bool created = false;
 	(void)data;
-	(void)event;
-	// if (event == OBS_FRONTEND_EVENT_STREAMING_STARTING || event == OBS_FRONTEND_EVENT_STREAMING_STARTED ||
-	//     event == OBS_FRONTEND_EVENT_STREAMING_STOPPING || event == OBS_FRONTEND_EVENT_STREAMING_STOPPED ||
-	//     event == OBS_FRONTEND_EVENT_RECORDING_STARTING || event == OBS_FRONTEND_EVENT_RECORDING_STARTED ||
-	//     event == OBS_FRONTEND_EVENT_RECORDING_STOPPING || event == OBS_FRONTEND_EVENT_RECORDING_STOPPED ||
-	//     event == OBS_FRONTEND_EVENT_VIRTUALCAM_STARTED || event == OBS_FRONTEND_EVENT_VIRTUALCAM_STOPPED ||
-	//     event == OBS_FRONTEND_EVENT_RECORDING_PAUSED || event == OBS_FRONTEND_EVENT_RECORDING_UNPAUSED) {
-	// 	debug( "FOV Callback frontend debug");
-	// }
 
 	if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING || event == OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED) {
 		debug("--- FOV Enum sources ---");
@@ -316,56 +347,69 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 
 		// Start FOV
 		if (created != true) {
-			const char *enc_id = "obs_x264";
 			created = true;
-			obs_encoder_t *encoder = obs_video_encoder_create(enc_id, "FOVSource", NULL,NULL);
-			obs_encoder_set_video(encoder, obs_get_video());
-			obs_encoder_set_scaled_size(encoder, 1280, 720);
-			obs_output_set_video_encoder(fov_app.fov_out, encoder);
 
-			// TO File
-			obs_data_t *s = obs_data_create();
+			const char *enc_id = "obs_x264";
 			const char *format = "mp4";
 			const char *path = "/home/lucas/Desktop";
+			const char *filename = "/home/lucas/Desktop/FOVtest.mp4";
+			(void)enc_id;
+			// Utilisations de l'output standard d'OBS:
+			// fov_app.fov_out = obs_output_create("ffmpeg_muxer", "FOV ffmpeg", NULL, NULL);
+			// obs_encoder_t *audio_encoder = obs_audio_encoder_create("ffmpeg_aac", "FOVAudio", NULL, 0, NULL);
+			// obs_encoder_t *video_encoder = obs_video_encoder_create(enc_id, "FOVSource", NULL,NULL);
+			// obs_encoder_update(video_encoder,obs_encoder_defaults("obs_x264"));
+			// obs_encoder_set_video(video_encoder, obs_get_video());
+			// obs_encoder_set_scaled_size(video_encoder, 1280, 720);
+			// obs_encoder_set_frame_rate_divisor(video_encoder, 1);
+			// obs_encoder_set_audio(audio_encoder, obs_get_audio());
+			// obs_output_set_audio_encoder(fov_app.fov_out, audio_encoder, 0);
+			// obs_output_set_video_encoder(fov_app.fov_out, video_encoder);
 
-			char *filename = "/home/lucas/Desktop/FOVtest.mp4";
-			obs_data_set_string(s, "path", filename);
-			obs_data_set_string(s, "directory", path);
-			obs_data_set_string(s, "format", "hybrid_mp4");
-			obs_data_set_string(s, "extension", format);
-			obs_output_update(fov_app.fov_out, s);
+			fov_app.fov_out = obs_output_create("flexible_output_view_output", "FOV Out", NULL, NULL);
+			obs_output_set_service(fov_app.fov_out, fov_app.fov_service);
+			obs_encoder_t *audio_encoder =
+				obs_audio_encoder_create("ffmpeg_aac", "FOVAudio", NULL, 0, NULL);
+			obs_encoder_t *video_encoder = obs_video_encoder_create(enc_id, "FOVSource", NULL, NULL);
+			obs_encoder_update(video_encoder, obs_encoder_defaults("obs_x264"));
+			obs_encoder_set_video(video_encoder, obs_get_video());
+			obs_encoder_set_scaled_size(video_encoder, 1280, 720);
+			obs_encoder_set_frame_rate_divisor(video_encoder, 1);
+			obs_encoder_set_audio(audio_encoder, obs_get_audio());
+			obs_output_set_audio_encoder(fov_app.fov_out, audio_encoder, 0);
+			obs_output_set_video_encoder(fov_app.fov_out, video_encoder);
 
+			// Configuration du muxer, sortie vers un fichier
+			obs_data_t *muxer_settings = obs_data_create();
+			obs_data_set_string(muxer_settings, "path", filename);
+			obs_data_set_string(muxer_settings, "directory", path);
+			obs_data_set_string(muxer_settings, "format", "mp4");
+			obs_data_set_string(muxer_settings, "extension", format);
+			obs_output_update(fov_app.fov_out, muxer_settings);
+			obs_output_initialize_encoders(fov_app.fov_out, 0);
 			obs_output_start(fov_app.fov_out);
+
+			// obs_output_begin_data_capture(fov_app.fov_out, 0);
+			// obs_source_create
+			// obs_view_create()
+			// obs_view_add2()
+			// obs_view_set_source()
+			// obs_source_inc_showing()
+			// obs_view_set_source()
+			// obs_get_video_info()
 		}
 	}
 }
 
 bool obs_module_load(void)
 {
-
-	debug("Le module FOV est chargé !");
-
+	debug("Le module FOV est charge !");
 	obs_register_output(&fov_output);
 	obs_register_service(&fov_service);
 
 	fov_app.fov_service = obs_service_create("flexible_output_view_service", "FOV Service", NULL, NULL);
-	fov_app.fov_out = obs_output_create("flexible_output_view_output", "FOV Output", NULL, NULL);
 
-	obs_output_set_service(fov_app.fov_out, fov_app.fov_service);
 	obs_frontend_add_event_callback(frontend_event, &fov_app);
-
-	signal_handler_t *handler = obs_output_get_signal_handler(fov_app.fov_out);
-	signal_handler_connect(handler, "start", fov_start_output, NULL);
-
-	obs_output_initialize_encoders(fov_app.fov_out, 0);
-
-	if (obs_output_can_begin_data_capture(fov_app.fov_out, 0)) {
-		debug("L'output FOV peut commencer la capture :)");
-		obs_output_begin_data_capture(fov_app.fov_out, 0);
-		obs_output_start(fov_app.fov_out);
-	} else {
-		debug("L'output FOV ne peut pas commencer la capture !");
-	}
 
 	return true;
 }
@@ -378,5 +422,5 @@ void obs_module_unload()
 	obs_service_release(fov_app.fov_service);
 	obs_output_release(fov_app.fov_out);
 
-	debug("Unload FOV");
+	debug("FOV module decharge");
 }
