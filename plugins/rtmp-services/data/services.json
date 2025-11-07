@@ -3478,6 +3478,47 @@
                 "keyint": 1,
                 "max video bitrate": 6000
             }
+        },
+        {
+            "name": "My Custom Service",
+            "common": true,
+            "protocol": "RTMP",
+            "more_info_link": "https://example.com/mycustomservice",
+            "stream_key_link": "https://example.com/mycustomservice/get-stream-key",
+            "servers": [
+                {
+                    "name": "Automatic",
+                    "url": "rtmp://live.mycustomservice.example/app"
+                }
+            ],
+            "supported video codecs": [
+                "h264"
+            ],
+            "supported audio codecs": [
+                "aac"
+            ],
+            "recommended": {
+                "keyint": 2,
+                "max video bitrate": 4500,
+                "max audio bitrate": 160
+            }
+        },
+        {
+            "name": "FOV - Multiflux",
+            "more_info_link": "https://fov.live",
+            "servers": [
+                {
+                    "name": "Automatic",
+                    "url": "rtmp://localhost/live"
+                }
+            ],
+            "supported video codecs": [
+                "h264"
+            ],
+            "recommended": {
+                "keyint": 1,
+                "max video bitrate": 6000
+            }
         }
     ]
 }

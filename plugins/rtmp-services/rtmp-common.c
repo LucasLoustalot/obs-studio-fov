@@ -245,8 +245,13 @@ static inline bool get_bool_val(json_t *service, const char *key)
 static bool is_protocol_available(json_t *service)
 {
 	const char *protocol = get_string_val(service, "protocol");
-	if (protocol)
-		return obs_is_output_protocol_registered(protocol);
+	const char *name = get_string_val(service, "name");
+	if (protocol) {
+		bool avail = obs_is_output_protocol_registered(protocol);
+		blog(LOG_DEBUG, "rtmp-common.c: [is_protocol_available] service='%s' protocol='%s' available=%d",
+		     name ? name : "(null)", protocol, avail);
+		return avail;
+	}
 
 	/* Test RTMP and RTMPS if no protocol found */
 	json_t *servers;
@@ -264,6 +269,8 @@ static bool is_protocol_available(json_t *service)
 		else if (strncmp(url, RTMPS_PREFIX, strlen(RTMPS_PREFIX)) == 0)
 			ret |= obs_is_output_protocol_registered("RTMPS");
 	}
+	blog(LOG_DEBUG, "rtmp-common.c: [is_protocol_available] service='%s' protocol_from_servers_available=%d",
+	     name ? name : "(null)", ret);
 
 	return ret;
 }
@@ -316,6 +323,9 @@ static void add_services(obs_property_t *list, json_t *root, bool show_all, cons
 	}
 
 	json_array_foreach (root, index, service) {
+		const char *name = get_string_val(service, "name");
+		blog(LOG_DEBUG, "rtmp-common.c: [add_services] checking service '%s' (index=%zu)",
+		     name ? name : "(null)", index);
 		/* Skip service with non-available protocol */
 		if (!is_protocol_available(service))
 			continue;
@@ -384,6 +394,8 @@ static json_t *open_services_file(void)
 	file = obs_module_config_path("services.json");
 	if (file) {
 		root = open_json_file(file);
+		blog(LOG_DEBUG, "rtmp-common.c: [open_services_file] tried config path: %s (root=%p)", file,
+		     (void *)root);
 		bfree(file);
 	}
 
@@ -391,6 +403,8 @@ static json_t *open_services_file(void)
 		file = obs_module_file("services.json");
 		if (file) {
 			root = open_json_file(file);
+			blog(LOG_DEBUG, "rtmp-common.c: [open_services_file] tried module file: %s (root=%p)", file,
+			     (void *)root);
 			bfree(file);
 		}
 	}
