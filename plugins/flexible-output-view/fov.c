@@ -38,7 +38,7 @@ static const char *filename = "/home/lucas/Desktop/FOVtest.mp4";
 static const int default_width = 1920;
 static const int default_height = 1080;
 static const int debug_framerate = 30;
-static const int debug_bitrate = 4000;
+static const int debug_bitrate = 5000;
 
 typedef struct fov_output_internal_s {
 	obs_output_t *obs_output_ref;
@@ -163,7 +163,7 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 				obs_data_set_int(videoEncoderSettings, "colorspace", VIDEO_CS_DEFAULT);
 				obs_data_set_int(videoEncoderSettings, "framerate", debug_framerate);
 
-				snprintf(encoder_name, sizeof(encoder_name), "FOV Multitrack Video Encoder %d", i);
+				snprintf(encoder_name, sizeof(encoder_name), "FOV Track %d - %s",i, obs_source_get_name(fov_app.source_refs[i]));
 				obs_encoder_t *v_encoder =
 					obs_video_encoder_create(v_enc_id, encoder_name, videoEncoderSettings, NULL);
 				obs_encoder_set_scaled_size(v_encoder, width, height);
