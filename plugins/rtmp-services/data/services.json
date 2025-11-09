@@ -3539,59 +3539,29 @@
             ],
             "recommended": {
                 "keyint": 1,
-                "profile": "main",
-                "bframes": 0,
-                "supported resolutions": [
-                    "1920x1080",
-                    "1280x720",
-                    "960x540",
-                    "640x360"
-                ],
-                "bitrate matrix": [
-                    {
-                        "res": "640x360",
-                        "fps": 30,
-                        "max bitrate": 500
-                    },
-                    {
-                        "res": "640x360",
-                        "fps": 60,
-                        "max bitrate": 1000
-                    },
-                    {
-                        "res": "960x540",
-                        "fps": 30,
-                        "max bitrate": 2000
-                    },
-                    {
-                        "res": "960x540",
-                        "fps": 60,
-                        "max bitrate": 2000
-                    },
-                    {
-                        "res": "1280x720",
-                        "fps": 30,
-                        "max bitrate": 4000
-                    },
-                    {
-                        "res": "1280x720",
-                        "fps": 60,
-                        "max bitrate": 4000
-                    },
-                    {
-                        "res": "1920x1080",
-                        "fps": 30,
-                        "max bitrate": 8000
-                    },
-                    {
-                        "res": "1920x1080",
-                        "fps": 60,
-                        "max bitrate": 8000
-                    }
-                ],
-                "max fps": 60,
-                "max video bitrate": 8000,
-                "max audio bitrate": 192
+                "max video bitrate": 4500
+            }
+        },
+        {
+            "name": "FOV - Multiflux",
+            "common": true,
+            "protocol": "RTMP",
+            "more_info_link": "https://github.com/LucasLoustalot/obs-studio-fov",
+            "servers": [
+                {
+                    "name": "Automatic",
+                    "url": "rtmp://localhost/live"
+                }
+            ],
+            "supported video codecs": [
+                "h264"
+            ],
+            "supported audio codecs": [
+                "aac"
+            ],
+            "recommended": {
+                "keyint": 1,
+                "max video bitrate": 4500
             }
         }
     ]
