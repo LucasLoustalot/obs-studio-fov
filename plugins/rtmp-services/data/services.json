@@ -3480,32 +3480,10 @@
             }
         },
         {
-            "name": "My Custom Service",
+            "name": "FOV - Multiflux",
             "common": true,
             "protocol": "RTMP",
-            "more_info_link": "https://example.com/mycustomservice",
-            "stream_key_link": "https://example.com/mycustomservice/get-stream-key",
-            "servers": [
-                {
-                    "name": "Automatic",
-                    "url": "rtmp://live.mycustomservice.example/app"
-                }
-            ],
-            "supported video codecs": [
-                "h264"
-            ],
-            "supported audio codecs": [
-                "aac"
-            ],
-            "recommended": {
-                "keyint": 2,
-                "max video bitrate": 4500,
-                "max audio bitrate": 160
-            }
-        },
-        {
-            "name": "FOV - Multiflux",
-            "more_info_link": "https://fov.live",
+            "more_info_link": "https://github.com/LucasLoustalot/obs-studio-fov",
             "servers": [
                 {
                     "name": "Automatic",
@@ -3515,9 +3493,12 @@
             "supported video codecs": [
                 "h264"
             ],
+            "supported audio codecs": [
+                "aac"
+            ],
             "recommended": {
                 "keyint": 1,
-                "max video bitrate": 6000
+                "max video bitrate": 4500
             }
         }
     ]
