@@ -26,6 +26,7 @@
 
 #include <gio/gio.h>
 #include <gio/gunixfdlist.h>
+#include <glib/gstdio.h>
 
 #include <fcntl.h>
 #include <glad/glad.h>
@@ -143,6 +144,7 @@ struct _obs_pipewire_stream {
 		int release_syncobj_fd;
 		uint64_t acquire_point;
 		uint64_t release_point;
+		bool release_point_will_signal;
 		bool set;
 	} sync;
 };
@@ -482,17 +484,28 @@ static void init_format_info_sync(obs_pipewire_stream *obs_pw_stream)
 	bfree(drm_formats);
 }
 
-static void init_format_info(obs_pipewire_stream *obs_pw_stream)
+static void init_format_info(obs_pipewire_stream *obs_pw_stream, const struct obs_pw_video_format *selected_format)
 {
-	uint32_t output_flags;
+	if (selected_format) {
+		struct format_info *info;
 
-	output_flags = obs_source_get_output_flags(obs_pw_stream->source);
+		da_init(obs_pw_stream->format_info);
 
-	if (output_flags & OBS_SOURCE_VIDEO) {
-		if (output_flags & OBS_SOURCE_ASYNC)
-			init_format_info_async(obs_pw_stream);
-		else
-			init_format_info_sync(obs_pw_stream);
+		info = da_push_back_new(obs_pw_stream->format_info);
+		da_init(info->modifiers);
+		info->spa_format = selected_format->spa_format;
+		info->drm_format = selected_format->drm_format;
+	} else {
+		uint32_t output_flags;
+
+		output_flags = obs_source_get_output_flags(obs_pw_stream->source);
+
+		if (output_flags & OBS_SOURCE_VIDEO) {
+			if (output_flags & OBS_SOURCE_ASYNC)
+				init_format_info_async(obs_pw_stream);
+			else
+				init_format_info_sync(obs_pw_stream);
+		}
 	}
 }
 
@@ -765,15 +778,28 @@ static void process_video_sync(obs_pipewire_stream *obs_pw_stream)
 		}
 
 #if PW_CHECK_VERSION(1, 2, 0)
+		if (obs_pw_stream->sync.release_syncobj_fd != -1) {
+			if (!obs_pw_stream->sync.release_point_will_signal) {
+				gs_sync_signal_syncobj_timeline_point(obs_pw_stream->sync.release_syncobj_fd,
+								      obs_pw_stream->sync.release_point);
+				obs_pw_stream->sync.release_point_will_signal = true;
+			}
+		}
+
+		g_clear_fd(&obs_pw_stream->sync.acquire_syncobj_fd, NULL);
+		g_clear_fd(&obs_pw_stream->sync.release_syncobj_fd, NULL);
+
 		if (synctimeline && (buffer->n_datas == (planes + 2))) {
 			assert(buffer->datas[planes].type == SPA_DATA_SyncObj);
 			assert(buffer->datas[planes + 1].type == SPA_DATA_SyncObj);
 
-			obs_pw_stream->sync.acquire_syncobj_fd = buffer->datas[planes].fd;
+			obs_pw_stream->sync.acquire_syncobj_fd = fcntl(buffer->datas[planes].fd, F_DUPFD_CLOEXEC, 5);
 			obs_pw_stream->sync.acquire_point = synctimeline->acquire_point;
 
-			obs_pw_stream->sync.release_syncobj_fd = buffer->datas[planes + 1].fd;
+			obs_pw_stream->sync.release_syncobj_fd =
+				fcntl(buffer->datas[planes + 1].fd, F_DUPFD_CLOEXEC, 5);
 			obs_pw_stream->sync.release_point = synctimeline->release_point;
+			obs_pw_stream->sync.release_point_will_signal = false;
 
 			obs_pw_stream->sync.set = true;
 		} else {
@@ -1164,7 +1190,7 @@ void obs_pipewire_destroy(obs_pipewire *obs_pw)
 }
 
 obs_pipewire_stream *obs_pipewire_connect_stream(obs_pipewire *obs_pw, obs_source_t *source, int pipewire_node,
-						 const struct obs_pipwire_connect_stream_info *connect_info)
+						 const struct obs_pipewire_connect_stream_info *connect_info)
 {
 	struct spa_pod_builder pod_builder;
 	const struct spa_pod **params = NULL;
@@ -1180,6 +1206,8 @@ obs_pipewire_stream *obs_pipewire_connect_stream(obs_pipewire *obs_pw, obs_sourc
 	obs_pw_stream->cursor.visible = connect_info->screencast.cursor_visible;
 	obs_pw_stream->framerate.set = connect_info->video.framerate != NULL;
 	obs_pw_stream->resolution.set = connect_info->video.resolution != NULL;
+	obs_pw_stream->sync.acquire_syncobj_fd = -1;
+	obs_pw_stream->sync.release_syncobj_fd = -1;
 
 	if (obs_pw_stream->framerate.set)
 		obs_pw_stream->framerate.fraction = *connect_info->video.framerate;
@@ -1187,7 +1215,7 @@ obs_pipewire_stream *obs_pipewire_connect_stream(obs_pipewire *obs_pw, obs_sourc
 	if (obs_pw_stream->resolution.set)
 		obs_pw_stream->resolution.rect = *connect_info->video.resolution;
 
-	init_format_info(obs_pw_stream);
+	init_format_info(obs_pw_stream, connect_info->video.format);
 
 	pw_thread_loop_lock(obs_pw->thread_loop);
 
@@ -1310,6 +1338,8 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream, gs_eff
 		gs_sync_destroy(acquire_sync);
 	}
 
+	/* FIXME: Use obs_pw_stream->format.info.raw colorimetry info to handle
+	 * textures in their corresponding color space */
 	image = gs_effect_get_param_by_name(effect, "image");
 	gs_effect_set_texture(image, obs_pw_stream->texture);
 
@@ -1358,6 +1388,7 @@ void obs_pipewire_stream_video_render(obs_pipewire_stream *obs_pw_stream, gs_eff
 		gs_sync_export_syncobj_timeline_point(release_sync, obs_pw_stream->sync.release_syncobj_fd,
 						      obs_pw_stream->sync.release_point);
 		gs_sync_destroy(release_sync);
+		obs_pw_stream->sync.release_point_will_signal = true;
 	}
 }
 
@@ -1389,6 +1420,9 @@ void obs_pipewire_stream_destroy(obs_pipewire_stream *obs_pw_stream)
 		pw_stream_disconnect(obs_pw_stream->stream);
 	g_clear_pointer(&obs_pw_stream->stream, pw_stream_destroy);
 	pw_thread_loop_unlock(obs_pw_stream->obs_pw->thread_loop);
+
+	g_clear_fd(&obs_pw_stream->sync.acquire_syncobj_fd, NULL);
+	g_clear_fd(&obs_pw_stream->sync.release_syncobj_fd, NULL);
 
 	clear_format_info(obs_pw_stream);
 	bfree(obs_pw_stream);

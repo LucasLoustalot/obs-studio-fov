@@ -163,8 +163,8 @@ static void obs_qsv_destroy(void *data)
 static void obs_qsv_defaults(obs_data_t *settings, int ver, enum qsv_codec codec)
 {
 	obs_data_set_default_string(settings, "target_usage", "TU4");
-	obs_data_set_default_int(settings, "bitrate", 2500);
-	obs_data_set_default_int(settings, "max_bitrate", 3000);
+	obs_data_set_default_int(settings, "bitrate", 5000);
+	obs_data_set_default_int(settings, "max_bitrate", 6000);
 	obs_data_set_default_string(settings, "profile", codec == QSV_CODEC_AVC ? "high" : "main");
 	obs_data_set_default_string(settings, "rate_control", "CBR");
 
@@ -347,17 +347,6 @@ static bool rate_control_modified(obs_properties_t *ppts, obs_property_t *p, obs
 	return true;
 }
 
-static bool profile_modified(obs_properties_t *ppts, obs_property_t *p, obs_data_t *settings)
-{
-	const char *profile = obs_data_get_string(settings, "profile");
-	enum qsv_cpu_platform plat = qsv_get_cpu_platform();
-	bool bVisible = ((astrcmpi(profile, "high") == 0) &&
-			 (plat >= QSV_CPU_PLATFORM_ICL || plat == QSV_CPU_PLATFORM_UNKNOWN));
-	p = obs_properties_get(ppts, "CQM");
-	obs_property_set_visible(p, bVisible);
-	return true;
-}
-
 static inline void add_rate_controls(obs_property_t *list, const struct qsv_rate_control_info *rc)
 {
 	enum qsv_cpu_platform plat = qsv_get_cpu_platform();
@@ -409,8 +398,6 @@ static obs_properties_t *obs_qsv_props(enum qsv_codec codec, void *unused, int v
 		add_strings(prop, qsv_profile_names_av1);
 	else if (codec == QSV_CODEC_HEVC)
 		add_strings(prop, qsv_profile_names_hevc);
-
-	obs_property_set_modified_callback(prop, profile_modified);
 
 	prop = obs_properties_add_int(props, "keyint_sec", TEXT_KEYINT_SEC, 0, 20, 1);
 	obs_property_int_set_suffix(prop, " s");

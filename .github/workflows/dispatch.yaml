@@ -68,7 +68,7 @@ jobs:
           submodules: recursive
           token: ${{ secrets.CROWDIN_SYNC_GITHUB_PAT }}
           fetch-depth: 0
-      - uses: obsproject/obs-crowdin-sync/download@84628cad04d2423e02443c64965cb834b4c5a245
+      - uses: obsproject/obs-crowdin-sync/download@430665179ed13233af2d83ec192c2ae8c40a29ae
 
   steam-upload:
     name: Upload Steam Builds 🚂
@@ -139,7 +139,7 @@ jobs:
   windows-patches:
     name: Create Windows Patches 🩹
     if: github.repository_owner == 'obsproject' && inputs.job == 'patches'
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/windows-patches
