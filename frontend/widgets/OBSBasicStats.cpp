@@ -17,7 +17,7 @@
 
 void OBSBasicStats::OBSFrontendEvent(enum obs_frontend_event event, void *ptr)
 {
-	OBSBasicStats *stats = reinterpret_cast<OBSBasicStats *>(ptr);
+	OBSBasicStats *stats = static_cast<OBSBasicStats *>(ptr);
 
 	switch (event) {
 	case OBS_FRONTEND_EVENT_RECORDING_STARTED:
@@ -39,7 +39,7 @@ void OBSBasicStats::OBSFrontendEvent(enum obs_frontend_event event, void *ptr)
 
 static QString MakeTimeLeftText(int hours, int minutes)
 {
-	return QString::asprintf("%d %s, %d %s", hours, Str("Hours"), minutes, Str("Minutes"));
+	return QTStr("Basic.Stats.DiskFullIn.Text").arg(QString::number(hours), QString::number(minutes));
 }
 
 static QString MakeMissedFramesText(uint32_t total_lagged, uint32_t total_rendered, long double num)
@@ -169,9 +169,7 @@ OBSBasicStats::OBSBasicStats(QWidget *parent, bool closable)
 	resize(800, 280);
 
 	setWindowTitle(QTStr("Basic.Stats"));
-#ifdef __APPLE__
-	setWindowIcon(QIcon::fromTheme("obs", QIcon(":/res/images/obs_256x256.png")));
-#else
+#ifndef __APPLE__
 	setWindowIcon(QIcon::fromTheme("obs", QIcon(":/res/images/obs.png")));
 #endif
 

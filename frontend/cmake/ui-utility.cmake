@@ -8,6 +8,8 @@ target_sources(
     utility/BaseLexer.hpp
     utility/BasicOutputHandler.cpp
     utility/BasicOutputHandler.hpp
+    utility/CrashHandler.cpp
+    utility/CrashHandler.hpp
     utility/display-helpers.hpp
     utility/FFmpegCodec.cpp
     utility/FFmpegCodec.hpp
@@ -33,6 +35,8 @@ target_sources(
     utility/MultitrackVideoOutput.hpp
     utility/obf.c
     utility/obf.h
+    utility/OBSCanvas.cpp
+    utility/OBSCanvas.hpp
     utility/OBSEventFilter.hpp
     utility/OBSProxyStyle.cpp
     utility/OBSProxyStyle.hpp
