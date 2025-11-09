@@ -3542,6 +3542,7 @@
                 "max video bitrate": 4500
             }
         },
+        {
             "name": "FOV - Multiflux",
             "common": true,
             "protocol": "RTMP",
