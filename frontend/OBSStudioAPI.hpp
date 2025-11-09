@@ -120,8 +120,6 @@ struct OBSStudioAPI : obs_frontend_callbacks {
 
 	void obs_frontend_add_tools_menu_item(const char *name, obs_frontend_cb callback, void *private_data) override;
 
-	void *obs_frontend_add_dock(void *dock) override;
-
 	bool obs_frontend_add_dock_by_id(const char *id, const char *title, void *widget) override;
 
 	void obs_frontend_remove_dock(const char *id) override;
@@ -139,8 +137,6 @@ struct OBSStudioAPI : obs_frontend_callbacks {
 	obs_output_t *obs_frontend_get_replay_buffer_output(void) override;
 
 	config_t *obs_frontend_get_profile_config(void) override;
-
-	config_t *obs_frontend_get_global_config(void) override;
 
 	config_t *obs_frontend_get_app_config(void) override;
 
@@ -223,6 +219,12 @@ struct OBSStudioAPI : obs_frontend_callbacks {
 
 	void obs_frontend_add_undo_redo_action(const char *name, const undo_redo_cb undo, const undo_redo_cb redo,
 					       const char *undo_data, const char *redo_data, bool repeatable) override;
+
+	void obs_frontend_get_canvases(obs_frontend_canvas_list *canvas_list) override;
+
+	obs_canvas_t *obs_frontend_add_canvas(const char *name, obs_video_info *ovi, int flags) override;
+
+	bool obs_frontend_remove_canvas(obs_canvas_t *canvas) override;
 
 	void on_load(obs_data_t *settings) override;
 

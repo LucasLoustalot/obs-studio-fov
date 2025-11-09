@@ -228,12 +228,12 @@ BasicOutputHandler::BasicOutputHandler(OBSBasic *main_) : main(main_)
 		deactivateVirtualCam.Connect(signal, "deactivate", OBSDeactivateVirtualCam, this);
 	}
 
-	auto multitrack_enabled = config_get_bool(main->Config(), "Stream1", "EnableMultitrackVideo");
-	if (!config_has_user_value(main->Config(), "Stream1", "EnableMultitrackVideo")) {
-		auto service = main_->GetService();
-		OBSDataAutoRelease settings = obs_service_get_settings(service);
-		multitrack_enabled = obs_data_has_user_value(settings, "multitrack_video_configuration_url");
-	}
+	auto service = main_->GetService();
+	OBSDataAutoRelease settings = obs_service_get_settings(service);
+	auto multitrack_enabled = config_get_bool(main->Config(), "Stream1", "EnableMultitrackVideo") &&
+				  (obs_data_has_user_value(settings, "multitrack_video_configuration_url") ||
+				   strcmp(obs_service_get_id(service), "rtmp_custom") == 0);
+
 	if (multitrack_enabled)
 		multitrackVideo = make_unique<MultitrackVideoOutput>();
 }
@@ -457,6 +457,12 @@ std::shared_future<void> BasicOutputHandler::SetupMultitrackVideo(obs_service_t 
 		custom_config = DeserializeConfigText(
 			config_get_string(main->Config(), "Stream1", "MultitrackVideoConfigOverride"));
 
+	std::optional<QString> extraCanvasUUID;
+	const char *uuid = config_get_string(main->Config(), "Stream1", "MultitrackExtraCanvas");
+	if (uuid && *uuid) {
+		extraCanvasUUID = uuid;
+	}
+
 	OBSDataAutoRelease settings = obs_service_get_settings(service);
 	QString key = obs_data_get_string(settings, "key");
 
@@ -532,7 +538,8 @@ std::shared_future<void> BasicOutputHandler::SetupMultitrackVideo(obs_service_t 
 			multitrackVideo->PrepareStreaming(main, service_name.c_str(), service, custom_rtmp_url, key,
 							  audio_encoder_id.c_str(), maximum_aggregate_bitrate,
 							  maximum_video_tracks, custom_config, stream_dump_config,
-							  main_audio_mixer, vod_track_mixer, use_rtmps);
+							  main_audio_mixer, vod_track_mixer, use_rtmps,
+							  extraCanvasUUID);
 		} catch (const MultitrackVideoError &error_) {
 			error.emplace(error_);
 		}
