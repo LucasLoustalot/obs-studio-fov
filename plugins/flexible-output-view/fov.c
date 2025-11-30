@@ -36,8 +36,8 @@ static const char *a_enc_id = "ffmpeg_aac";
 static const char *format = "mp4";
 static const char *path = "/home/lucas/Desktop";
 static const char *filename = "/home/lucas/Desktop/FOVtest.mp4";
-static const char *rtmp_url = "rtmp://127.0.0.1:1935/live";
-static const char *rtmp_stream_key = "stream1";
+static const char *rtmp_url = "srt://127.0.0.1:10080?mode=caller";
+static const char *rtmp_stream_key = "";
 static const int default_width = 1920;
 static const int default_height = 1080;
 static const int debug_framerate = 30;
@@ -128,13 +128,14 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 		if (created != true) {
 			created = true;
 
-			fov_app.fov_out = obs_output_create("rtmp_output", "rtmp multitrack video", NULL, NULL);
+			fov_app.fov_out = obs_output_create("srt_output", "rtmp multitrack video", NULL, NULL);
 
 			obs_data_t *service_data = obs_data_create();
 			obs_data_set_string(service_data, "server", rtmp_url);
 			obs_data_set_string(service_data, "key", rtmp_stream_key);
+			obs_data_set_string(service_data, "bearer_token", rtmp_stream_key);
 
-			fov_app.fov_service = obs_service_create("rtmp_custom", "multitrack video service", service_data, NULL);
+			fov_app.fov_service = obs_service_create("srt_common", "multitrack video service", service_data, NULL);
 			obs_output_set_service(fov_app.fov_out, fov_app.fov_service);
 			obs_data_release(service_data);
 
@@ -240,6 +241,7 @@ void obs_module_unload()
 
 	// Stop output safely
 	obs_output_force_stop(fov_app.fov_out);
+
 
 	debug("FOV module decharge");
 }
