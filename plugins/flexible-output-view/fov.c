@@ -33,11 +33,13 @@ static struct fov_system {
 static const int nbAudioEncodeurs = 1;
 static const char *v_enc_id = "obs_x264";
 static const char *a_enc_id = "ffmpeg_aac";
-static const char *format = "mp4";
-static const char *path = "/home/lucas/Desktop";
-static const char *filename = "/home/lucas/Desktop/FOVtest.mp4";
-static const char *rtmp_url = "srt://127.0.0.1:10080?mode=caller";
-static const char *rtmp_stream_key = "";
+// static const char *format = "mp4";
+// static const char *path = "/home/lucas/Desktop";
+// static const char *filename = "/home/lucas/Desktop/FOVtest.mp4";
+static const char *rtmp_url = "srt://127.0.0.1:9999?mode=listener";
+// static const char *rtmp_url = "srt://127.0.0.1:8890?streamid=publish:mystream";
+// publish:mystream
+static const char *rtmp_stream_key = "publish:mystream";
 static const int default_width = 1920;
 static const int default_height = 1080;
 static const int debug_framerate = 30;
@@ -128,23 +130,24 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 		if (created != true) {
 			created = true;
 
-			fov_app.fov_out = obs_output_create("srt_output", "rtmp multitrack video", NULL, NULL);
+			fov_app.fov_out = obs_output_create("ffmpeg_mpegts_muxer", "rtmp multitrack video", NULL, NULL);
 
 			obs_data_t *service_data = obs_data_create();
 			obs_data_set_string(service_data, "server", rtmp_url);
 			obs_data_set_string(service_data, "key", rtmp_stream_key);
-			obs_data_set_string(service_data, "bearer_token", rtmp_stream_key);
+			obs_service_update(fov_app.fov_service, service_data);
+			// obs_data_set_string(service_data, "bearer_token", rtmp_stream_key);
 
-			fov_app.fov_service = obs_service_create("srt_common", "multitrack video service", service_data, NULL);
+			fov_app.fov_service = obs_service_create("rtmp_custom", "multitrack video service", service_data, NULL);
 			obs_output_set_service(fov_app.fov_out, fov_app.fov_service);
 			obs_data_release(service_data);
 
 			// Configuration du muxer, sortie vers un fichier
 			obs_data_t *muxer_settings = obs_data_create();
-			obs_data_set_string(muxer_settings, "path", filename);
-			obs_data_set_string(muxer_settings, "directory", path);
-			obs_data_set_string(muxer_settings, "format", "mp4");
-			obs_data_set_string(muxer_settings, "extension", format);
+			obs_data_set_string(muxer_settings, "url", rtmp_url);
+			// obs_data_set_string(muxer_settings, "directory", path);
+			// obs_data_set_string(muxer_settings, "format", "fmp4");
+			// obs_data_set_string(muxer_settings, "extension", format);
 			obs_output_update(fov_app.fov_out, muxer_settings);
 
 			// Creation d'un groupe d'encodeur
@@ -174,6 +177,8 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 				obs_data_set_int(videoEncoderSettings, "range", VIDEO_RANGE_DEFAULT);
 				obs_data_set_int(videoEncoderSettings, "colorspace", VIDEO_CS_DEFAULT);
 				obs_data_set_int(videoEncoderSettings, "framerate", debug_framerate);
+				obs_data_set_int(videoEncoderSettings, "profile", 77); // AV_PROFILE_H264_MAIN
+				obs_data_set_bool(videoEncoderSettings, "disable_scenecut", true);
 
 				snprintf(encoder_name, sizeof(encoder_name), "FOV Track %d - %s",i, obs_source_get_name(fov_app.source_refs[i]));
 				obs_encoder_t *v_encoder =
@@ -186,9 +191,17 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 				// Passer le video_t de la source
 				obs_encoder_set_video(v_encoder, fov_app.source_video_context[i]);
 
+
 				obs_encoder_set_frame_rate_divisor(v_encoder, 1);
 				obs_encoder_set_group(v_encoder, fov_app.encoder_group);
 				obs_output_set_video_encoder2(fov_app.fov_out, v_encoder, i);
+
+
+				// static bool isfirst = true;
+				// if (isfirst) {
+				// 	isfirst = false;
+				// 	obs_output_set_video_encoder(fov_app.fov_out, v_encoder);
+				// }
 
 				obs_data_release(videoEncoderSettings);
 			}
@@ -209,10 +222,15 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 
 				obs_data_release(audioEncoderSettings);
 			}
-
 			// Démarrage des encodeurs et de l'output
+
 			obs_output_initialize_encoders(fov_app.fov_out, 0);
-			obs_output_start(fov_app.fov_out);
+			if (obs_output_start(fov_app.fov_out)) {
+				obs_output_begin_data_capture(fov_app.fov_out, 0);
+			} else {
+				const char *error = obs_output_get_last_error(fov_app.fov_out);
+				debug("FOV failed to start output: %s", error);
+			}
 		}
 	}
 }
