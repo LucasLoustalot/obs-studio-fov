@@ -8,7 +8,7 @@
 
 #pragma once
 
-#define NEW_MPEGTS_OUTPUT
+#define FOV_NEW_MPEGTS_OUTPUT
 
 
 #include <obs-module.h>
@@ -80,8 +80,11 @@ struct fov_ffmpeg_audio_info {
 };
 
 struct fov_ffmpeg_data {
-	AVStream *video;
-	AVCodecContext *video_ctx;
+	AVStream **videos;
+	AVCodecContext **videos_ctx;
+    int num_video_tracks;       // Support for multiple video tracks
+
+
 	struct fov_ffmpeg_audio_info *audio_infos;
 	const AVCodec *acodec;
 	const AVCodec *vcodec;
@@ -136,7 +139,7 @@ struct fov_ffmpeg_output {
 	os_event_t *stop_event;
 
 	DARRAY(AVPacket *) packets;
-#ifdef NEW_MPEGTS_OUTPUT
+#ifdef FOV_NEW_MPEGTS_OUTPUT
 	/* used for SRT & RIST */
 	URLContext *h;
 	AVIOContext *s;
@@ -150,10 +153,11 @@ struct fov_ffmpeg_output {
 	bool has_connected;
 #endif
 };
+
 struct fov_mpegts_cmd {
 	enum mpegts_cmd_type type;
 	bool signal_stop;
-	struct ffmpeg_output *stream;
+	struct fov_ffmpeg_output *stream;
 	uint64_t ts;
 };
 

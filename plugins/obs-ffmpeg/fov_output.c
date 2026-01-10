@@ -1,7 +1,7 @@
 /**
  * @file fov_output.c
  * @author The FOV Team
- * @brief Implementation of the FOV Output
+ * @brief Modification of obs_ffmpegts_muxer for FOV
  * The FOV output allows for a multi-track video stream over SRT or RIST
  * @version 0.1
  * @date 2026-01-01
@@ -9,164 +9,11 @@
 
 #pragma once
 
-
-
-
-
-// typedef struct fov_output_internal_s {
-// 	obs_output_t *obs_output_ref; // Reference to the obs_output_t (the parent)
-// 	struct dstr path;
-
-//     // Output States
-// 	volatile bool active;
-//     volatile bool connecting;
-// 	volatile bool stopping;
-
-// 	uint64_t stop_ts;
-
-// 	bool allow_overwrite;
-// 	uint64_t total_bytes;
-
-// 	// Synchronisation
-// 	volatile bool thread_writing;
-// 	pthread_mutex_t mutex;
-// 	os_event_t *stop_event;
-// 	int flags;
-
-
-// 	int64_t start_time;
-// 	int64_t max_time;
-
-// 	/* Buffer for packets while we reinitialise the muxer after splitting */
-// 	DARRAY(struct encoder_packet) split_buffer;
-// } fov_output_internal_t;
-
-// static const char *fov_output_name(void *unused)
-// {
-// 	UNUSED_PARAMETER(unused);
-// 	return obs_module_text("FOVOutput");
-// }
-
-// static obs_properties_t *fov_output_properties(void *unused)
-// {
-// 	UNUSED_PARAMETER(unused);
-
-// 	obs_properties_t *props = obs_properties_create();
-
-// 	obs_properties_add_text(props, "path", obs_module_text("FilePath"), OBS_TEXT_DEFAULT);
-// 	return props;
-// }
-
-// static void fov_output_destroy(void *data)
-// {
-// 	fov_output_internal_t *out = data;
-
-// 	pthread_mutex_destroy(&out->mutex);
-// 	dstr_free(&out->path);
-// 	bfree(out);
-// }
-
-// static void *fov_output_create(obs_data_t *settings, obs_output_t *output)
-// {
-// 	fov_output_internal_t *data = bzalloc(sizeof(fov_output_internal_t));
-
-// 	pthread_mutex_init_value(&data->mutex);
-// 	data->obs_output_ref = output;
-
-// 	if (pthread_mutex_init(&data->mutex, NULL) != 0) {
-// 		// Erreur, cleanup
-// 		pthread_mutex_destroy(&data->mutex);
-// 		bfree(data);
-// 		return NULL;
-// 	}
-
-// 	if (os_event_init(&data->stop_event, OS_EVENT_TYPE_AUTO) != 0) {
-// 		// Erreur, cleanup
-// 		pthread_mutex_destroy(&data->mutex);
-// 		os_event_destroy(data->stop_event);
-// 		bfree(data);
-// 		return NULL;
-// 	}
-
-// 	UNUSED_PARAMETER(settings);
-// 	return data;
-// }
-
-// static inline bool fov_is_active(void *data)
-// {
-// 	fov_output_internal_t *output = data;
-// 	return os_atomic_load_bool(&output->active);
-// }
-
-// static void fov_deactivate(fov_output_internal_t *output)
-// {
-// 	if (output->thread_writing) {
-// 		os_event_signal(output->stop_event);
-// 		pthread_join(output->, NULL);
-// 		stream->write_thread_active = false;
-// 	}
-
-// 	pthread_mutex_lock(&stream->write_mutex);
-
-// 	for (size_t i = 0; i < stream->packets.num; i++)
-// 		av_packet_free(stream->packets.array + i);
-
-// 	da_free(stream->packets);
-
-// 	pthread_mutex_unlock(&stream->write_mutex);
-// }
-
-
-// static void fov_full_stop(void *data)
-// {
-// 	fov_output_internal_t *output = data;
-
-// 	if (fov_is_active(output)) {
-
-// 	}
-
-// }
-
-// static void fov_output_deactivate(fov_output_internal_t *stream);
-// static void fov_output_stop(void *data, uint64_t ts);
-
-// typedef struct fov_srt_handle_s {
-// 	SRTContext srt_context;
-
-
-// } fov_srt_context_t;
-
-// typedef struct fov_output_internal_s {
-
-// } fov_output_internal_t;
-
-
-
-
-// struct obs_output_info fov_output_info = {
-// 	.id = "fov_output",
-// 	.flags = OBS_OUTPUT_ENCODED | OBS_OUTPUT_MULTI_TRACK_AV | OBS_OUTPUT_SERVICE,
-//     .protocols = "SRT;RIST",
-// #ifdef ENABLE_HEVC
-// 	.encoded_video_codecs = "h264;hevc",
-// #else
-// 	.encoded_video_codecs = "h264",
-// #endif
-// 	.encoded_audio_codecs = "aac;opus",
-// 	.get_name = fov_output_name,
-// 	.create = fov_output_create,
-// 	.destroy = mp4_output_destroy,
-// 	.start = mp4_output_start,
-// 	.stop = mp4_output_stop,
-// 	.encoded_packet = mp4_output_packet, // Reception d'un packet encodé, doit être remuxé dans un .ts puis envoyé via SRT. Tenter de faire en C++
-// 	.get_properties = fov_output_properties,
-// 	.get_total_bytes = mp4_output_total_bytes,
-// };
-
-
 #include "fov_output_internal.h"
 #include "obs-output.h"
-
+#include "obs.h"
+#include <libavutil/pixfmt.h>
+#include <unistd.h>
 
 static void fov_output_set_last_error(struct fov_ffmpeg_data *data, const char *error)
 {
@@ -237,66 +84,97 @@ static bool get_audio_headers(struct fov_ffmpeg_output *stream, struct fov_ffmpe
 
 static bool get_video_headers(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_data *data)
 {
-	AVCodecParameters *par = data->video->codecpar;
+	AVCodecParameters *par = data->videos->codecpar;
 	obs_encoder_t *vencoder = obs_output_get_video_encoder(stream->output);
 	struct encoder_packet packet = {.type = OBS_ENCODER_VIDEO, .timebase_den = 1};
 
 	if (obs_encoder_get_extra_data(vencoder, &packet.data, &packet.size)) {
 		par->extradata = av_memdup(packet.data, packet.size);
 		par->extradata_size = (int)packet.size;
-		avcodec_parameters_to_context(data->video_ctx, data->video->codecpar);
+		avcodec_parameters_to_context(data->videos_ctx, data->videos->codecpar);
 		return 1;
 	}
 	return 0;
 }
 
-static bool create_video_stream(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_data *data)
+/**
+ * @brief Apply video format properties by converting OBS properties to FFMPEG properties.
+ * @param[out] out_context Output video context
+ * @param[in] ovi Video Info
+ * @param[out] out_data Output video data
+ * @param[in] track_index Index of the video track
+ * @param[in] video_track_encoder The encoder used by the video track
+ * @param[in] video_track_encoder_settings The settings of the encoder
+ * @return true Success
+ * @return false Failure
+ */
+static bool apply_video_track_format(AVCodecContext *out_context, const struct obs_video_info *ovi,
+				     struct fov_ffmpeg_data *out_data, int track_index,
+				     const obs_encoder_t *video_track_encoder, obs_data_t *video_track_encoder_settings)
 {
-	AVCodecContext *context;
-	struct obs_video_info ovi;
+	video_t *encoder_video = obs_encoder_video(video_track_encoder);
+	const struct video_output_info *voi = video_output_get_info(encoder_video);
 
-	if (!obs_get_video_info(&ovi)) {
-		fov_output_log_error(LOG_WARNING, data, "No active video");
+	/* Set video bitrate & gop through video encoder settings */
+	out_context->width = obs_encoder_get_width(video_track_encoder);
+	out_context->height = obs_encoder_get_height(video_track_encoder);
+	out_context->coded_width = out_context->width;   // TODO: Maybe change this back data to ->config.scale_width ?
+	out_context->coded_height = out_context->height; // TODO: Maybe change this back to data->config.scale_height ?
+	out_context->time_base = (AVRational){ovi->fps_den, ovi->fps_num};
+
+	out_context->bit_rate = obs_data_get_int(video_track_encoder_settings, "bitrate") * 1000;
+	int keyint_sec = (int)obs_data_get_int(video_track_encoder_settings, "keyint_sec");
+
+	/* Set colorspace, color_range & transfer characteristic (from voi) */
+	out_context->gop_size = keyint_sec ? keyint_sec * voi->fps_num / voi->fps_den : 250;
+	out_context->pix_fmt = obs_to_ffmpeg_video_format(voi->format);
+	if (out_context->pix_fmt == AV_PIX_FMT_NONE) {
+		blog(LOG_WARNING, "Invalid pixel format used for FOV output");
 		return false;
 	}
-	const char *name = data->config.video_encoder;
-	const AVCodecDescriptor *codec = avcodec_descriptor_get_by_name(name);
-	if (!codec) {
-		error("Couldn't find codec '%s'", name);
-		return false;
+	out_context->color_range = voi->range == VIDEO_RANGE_FULL ? AVCOL_RANGE_JPEG : AVCOL_RANGE_MPEG;
+	out_context->colorspace = format_is_yuv(voi->format) ? AVCOL_SPC_BT709 : AVCOL_SPC_RGB;
+	switch (voi->colorspace) {
+	case VIDEO_CS_601:
+		out_context->color_primaries = AVCOL_PRI_SMPTE170M;
+		out_context->color_trc = AVCOL_TRC_SMPTE170M;
+		out_context->colorspace = AVCOL_SPC_SMPTE170M;
+		break;
+	case VIDEO_CS_DEFAULT:
+	case VIDEO_CS_709:
+		out_context->color_primaries = AVCOL_PRI_BT709;
+		out_context->color_trc = AVCOL_TRC_BT709;
+		out_context->colorspace = AVCOL_SPC_BT709;
+		break;
+	case VIDEO_CS_SRGB:
+		out_context->color_primaries = AVCOL_PRI_BT709;
+		out_context->color_trc = AVCOL_TRC_IEC61966_2_1;
+		out_context->colorspace = AVCOL_SPC_BT709;
+		break;
+	case VIDEO_CS_2100_PQ:
+		out_context->color_primaries = AVCOL_PRI_BT2020;
+		out_context->color_trc = AVCOL_TRC_SMPTE2084;
+		out_context->colorspace = AVCOL_SPC_BT2020_NCL;
+		break;
+	case VIDEO_CS_2100_HLG:
+		out_context->color_primaries = AVCOL_PRI_BT2020;
+		out_context->color_trc = AVCOL_TRC_ARIB_STD_B67;
+		out_context->colorspace = AVCOL_SPC_BT2020_NCL;
 	}
-	if (!new_stream(data, &data->video, name))
-		return false;
 
-	context = avcodec_alloc_context3(NULL);
-	context->codec_type = codec->type;
-	context->codec_id = codec->id;
-	context->bit_rate = (int64_t)data->config.video_bitrate * 1000;
-	context->width = data->config.scale_width;
-	context->height = data->config.scale_height;
-	context->coded_width = data->config.scale_width;
-	context->coded_height = data->config.scale_height;
-	context->time_base = (AVRational){ovi.fps_den, ovi.fps_num};
-	context->gop_size = data->config.gop_size;
-	context->pix_fmt = data->config.format;
-	context->color_range = data->config.color_range;
-	context->color_primaries = data->config.color_primaries;
-	context->color_trc = data->config.color_trc;
-	context->colorspace = data->config.colorspace;
-	context->chroma_sample_location = determine_chroma_location(data->config.format, data->config.colorspace);
-	context->thread_count = 0;
+	out_context->chroma_sample_location = determine_chroma_location(out_context->pix_fmt, out_context->colorspace);
+	out_context->thread_count = 0;
 
-	data->video->time_base = context->time_base;
-	data->video->avg_frame_rate = av_inv_q(context->time_base);
+	out_data->videos[track_index]->time_base = out_context->time_base;
+	out_data->videos[track_index]->avg_frame_rate = av_inv_q(out_context->time_base);
+	out_data->videos_ctx[track_index] = out_context;
+	out_data->config.width = out_data->config.scale_width;
+	out_data->config.height = out_data->config.scale_height;
 
-	data->video_ctx = context;
-	data->config.width = data->config.scale_width;
-	data->config.height = data->config.scale_height;
+	avcodec_parameters_from_context(out_data->videos[track_index]->codecpar, out_context);
 
-	avcodec_parameters_from_context(data->video->codecpar, context);
-
-	const bool pq = data->config.color_trc == AVCOL_TRC_SMPTE2084;
-	const bool hlg = data->config.color_trc == AVCOL_TRC_ARIB_STD_B67;
+	const bool pq = out_context->color_trc == AVCOL_TRC_SMPTE2084;
+	const bool hlg = out_context->color_trc == AVCOL_TRC_ARIB_STD_B67;
 	if (pq || hlg) {
 		const int hdr_nominal_peak_level = pq ? (int)obs_get_video_hdr_nominal_peak_level() : (hlg ? 1000 : 0);
 
@@ -304,9 +182,9 @@ static bool create_video_stream(struct fov_ffmpeg_output *stream, struct fov_ffm
 		AVContentLightMetadata *const content = av_content_light_metadata_alloc(&content_size);
 		content->MaxCLL = hdr_nominal_peak_level;
 		content->MaxFALL = hdr_nominal_peak_level;
-		av_packet_side_data_add(&data->video->codecpar->coded_side_data,
-					&data->video->codecpar->nb_coded_side_data, AV_PKT_DATA_CONTENT_LIGHT_LEVEL,
-					(uint8_t *)content, content_size, 0);
+		av_packet_side_data_add(&out_data->videos[track_index]->codecpar->coded_side_data,
+					&out_data->videos[track_index]->codecpar->nb_coded_side_data,
+					AV_PKT_DATA_CONTENT_LIGHT_LEVEL, (uint8_t *)content, content_size, 0);
 
 		AVMasteringDisplayMetadata *const mastering = av_mastering_display_metadata_alloc();
 		mastering->display_primaries[0][0] = av_make_q(17, 25);
@@ -321,12 +199,49 @@ static bool create_video_stream(struct fov_ffmpeg_output *stream, struct fov_ffm
 		mastering->max_luminance = av_make_q(hdr_nominal_peak_level, 1);
 		mastering->has_primaries = 1;
 		mastering->has_luminance = 1;
-		av_packet_side_data_add(&data->video->codecpar->coded_side_data,
-					&data->video->codecpar->nb_coded_side_data,
+		av_packet_side_data_add(&out_data->videos[track_index]->codecpar->coded_side_data,
+					&out_data->videos[track_index]->codecpar->nb_coded_side_data,
 					AV_PKT_DATA_MASTERING_DISPLAY_METADATA, (uint8_t *)mastering,
 					sizeof(*mastering), 0);
 	}
+}
 
+static bool create_video_stream(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_data *data, int track_index)
+{
+	AVCodecContext *context;
+	struct obs_video_info ovi;
+
+	if (!obs_get_video_info(&ovi)) {
+		fov_output_log_error(LOG_WARNING, data, "No active video");
+		return false;
+	}
+
+	const char *name = data->config.video_encoder;
+	const AVCodecDescriptor *codec = avcodec_descriptor_get_by_name(name);
+	if (!codec) {
+		error("Couldn't find codec '%s'", name);
+		return false;
+	}
+	if (!new_stream(data, &data->videos[track_index], name))
+		return false;
+
+	obs_encoder_t *video_track_encoder = obs_output_get_video_encoder2(stream->output, track_index);
+	if (video_track_encoder == NULL) {
+		error("The specified video encoder does not exists");
+		return false;
+	}
+	obs_data_t *video_track_encoder_settings = obs_encoder_get_settings(video_track_encoder);
+	if (video_track_encoder_settings == NULL) {
+		error("Failed to get video encoder settings");
+	}
+
+	// -- Set video track format from encoder settings
+	context = avcodec_alloc_context3(NULL);
+	context->codec_type = codec->type;
+	context->codec_id = codec->id;
+	apply_video_track_format(context, &ovi, data, track_index, video_track_encoder, video_track_encoder_settings);
+
+	obs_data_release(video_track_encoder_settings);
 	return true;
 }
 
@@ -382,8 +297,12 @@ static bool create_audio_stream(struct fov_ffmpeg_output *stream, struct fov_ffm
 
 static inline bool init_streams(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_data *data)
 {
-	if (!create_video_stream(stream, data))
-		return false;
+	if (data->num_video_tracks) {
+		for (int i = 0; i < data->num_video_tracks; i++) {
+			if (!create_video_stream(stream, data, i))
+				return false;
+		}
+	}
 
 	if (data->num_audio_streams) {
 		data->audio_infos = calloc(data->num_audio_streams, sizeof(*data->audio_infos));
@@ -561,7 +480,7 @@ static inline int open_output_file(struct fov_ffmpeg_output *stream, struct fov_
 	if (!rist && !srt) {
 		if ((ret = av_dict_parse_string(&dict, data->config.protocol_settings, "=", " ", 0))) {
 			fov_output_log_error(LOG_WARNING, data, "Failed to parse protocol settings: %s, %s",
-						data->config.protocol_settings, av_err2str(ret));
+					     data->config.protocol_settings, av_err2str(ret));
 
 			av_dict_free(&dict);
 			return OBS_OUTPUT_ERROR;
@@ -617,7 +536,7 @@ static inline int open_output_file(struct fov_ffmpeg_output *stream, struct fov_
 			}
 		} else {
 			fov_output_log_error(LOG_WARNING, data, "Couldn't open '%s', %s", data->config.url,
-						av_err2str(ret));
+					     av_err2str(ret));
 			av_dict_free(&dict);
 		}
 		return ret;
@@ -653,7 +572,7 @@ static inline int open_output_file(struct fov_ffmpeg_output *stream, struct fov_
 
 static void close_video(struct fov_ffmpeg_data *data)
 {
-	avcodec_free_context(&data->video_ctx);
+	avcodec_free_context(&data->videos_ctx);
 }
 
 static void close_audio(struct fov_ffmpeg_data *data)
@@ -709,7 +628,7 @@ void fov_output_data_free(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_da
 	if (data->initialized)
 		av_write_trailer(data->output);
 
-	if (data->video)
+	if (data->videos)
 		close_video(data);
 	if (data->audio_infos) {
 		close_audio(data);
@@ -726,7 +645,7 @@ void fov_output_data_free(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_da
 			avio_close(data->output->pb);
 		}
 		avformat_free_context(data->output);
-		data->video = NULL;
+		data->videos = NULL;
 		data->audio_infos = NULL;
 		data->output = NULL;
 		data->num_audio_streams = 0;
@@ -866,8 +785,8 @@ static uint64_t get_packet_sys_dts(struct fov_ffmpeg_output *stream, AVPacket *p
 
 	AVRational time_base;
 
-	if (data->video && data->video->index == packet->stream_index) {
-		time_base = data->video->time_base;
+	if (data->videos && data->videos->index == packet->stream_index) {
+		time_base = data->videos->time_base;
 		start_ts = stream->video_start_ts;
 	} else {
 		time_base = data->audio_infos[0].stream->time_base;
@@ -912,7 +831,7 @@ static int mpegts_process_packet(struct fov_ffmpeg_output *stream)
 
 	if (ret < 0) {
 		fov_output_log_error(LOG_WARNING, &stream->ff_data, "process_packet: Error writing packet: %s",
-					av_err2str(ret));
+				     av_err2str(ret));
 
 		/* Treat "Invalid data found when processing input" and
 		 * "Invalid argument" as non-fatal */
@@ -1000,71 +919,21 @@ static bool fetch_service_info(struct fov_ffmpeg_output *stream, struct fov_ffmp
 	return true;
 }
 
-static bool setup_video_settings(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_cfg *config, int *code)
+static bool setup_global_video_settings(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_cfg *config, int *code)
 {
-	/* video settings */
+	static const int default_setting_track = 0;
 
-	/* a) set width & height */
+	obs_encoder_t *video_track_encoder = obs_output_get_video_encoder2(stream->output, default_setting_track);
 	config->width = (int)obs_output_get_width(stream->output);
 	config->height = (int)obs_output_get_height(stream->output);
 	config->scale_width = config->width;
 	config->scale_height = config->height;
-
-	/* b) set video codec & ID from video encoder */
-	obs_encoder_t *vencoder = obs_output_get_video_encoder(stream->output);
-	config->video_encoder = obs_encoder_get_codec(vencoder);
+	config->video_encoder = obs_encoder_get_codec(video_track_encoder);
 	if (strcmp(config->video_encoder, "h264") == 0)
 		config->video_encoder_id = AV_CODEC_ID_H264;
 	else
 		config->video_encoder_id = AV_CODEC_ID_AV1;
-
-	/* c) set video format from OBS to FFmpeg */
-	video_t *video = obs_encoder_video(vencoder);
-	config->format = obs_to_ffmpeg_video_format(video_output_get_format(video));
-
-	if (config->format == AV_PIX_FMT_NONE) {
-		blog(LOG_WARNING, "Invalid pixel format used for mpegts output");
-		*code = OBS_OUTPUT_ERROR;
-		return false;
-	}
-
-	/* d) set colorspace, color_range & transfer characteristic (from voi) */
-	const struct video_output_info *voi = video_output_get_info(video);
-	config->color_range = voi->range == VIDEO_RANGE_FULL ? AVCOL_RANGE_JPEG : AVCOL_RANGE_MPEG;
-	config->colorspace = format_is_yuv(voi->format) ? AVCOL_SPC_BT709 : AVCOL_SPC_RGB;
-	switch (voi->colorspace) {
-	case VIDEO_CS_601:
-		config->color_primaries = AVCOL_PRI_SMPTE170M;
-		config->color_trc = AVCOL_TRC_SMPTE170M;
-		config->colorspace = AVCOL_SPC_SMPTE170M;
-		break;
-	case VIDEO_CS_DEFAULT:
-	case VIDEO_CS_709:
-		config->color_primaries = AVCOL_PRI_BT709;
-		config->color_trc = AVCOL_TRC_BT709;
-		config->colorspace = AVCOL_SPC_BT709;
-		break;
-	case VIDEO_CS_SRGB:
-		config->color_primaries = AVCOL_PRI_BT709;
-		config->color_trc = AVCOL_TRC_IEC61966_2_1;
-		config->colorspace = AVCOL_SPC_BT709;
-		break;
-	case VIDEO_CS_2100_PQ:
-		config->color_primaries = AVCOL_PRI_BT2020;
-		config->color_trc = AVCOL_TRC_SMPTE2084;
-		config->colorspace = AVCOL_SPC_BT2020_NCL;
-		break;
-	case VIDEO_CS_2100_HLG:
-		config->color_primaries = AVCOL_PRI_BT2020;
-		config->color_trc = AVCOL_TRC_ARIB_STD_B67;
-		config->colorspace = AVCOL_SPC_BT2020_NCL;
-	}
-	/* e)  set video bitrate & gop through video encoder settings */
-	obs_data_t *settings = obs_encoder_get_settings(vencoder);
-	config->video_bitrate = (int)obs_data_get_int(settings, "bitrate");
-	int keyint_sec = (int)obs_data_get_int(settings, "keyint_sec");
-	config->gop_size = keyint_sec ? keyint_sec * voi->fps_num / voi->fps_den : 250;
-	obs_data_release(settings);
+	*code = OBS_OUTPUT_SUCCESS;
 	return true;
 }
 
@@ -1146,7 +1015,7 @@ static bool fov_output_finalize(struct fov_ffmpeg_output *stream, struct fov_ffm
 	int ret = pthread_create(&stream->write_thread, NULL, write_thread, stream);
 	if (ret != 0) {
 		fov_output_log_error(LOG_WARNING, &stream->ff_data,
-					"fov_ffmpeg_output_start: Failed to create write thread.");
+				     "fov_ffmpeg_output_start: Failed to create write thread.");
 		*code = OBS_OUTPUT_ERROR;
 		return false;
 	}
@@ -1163,7 +1032,7 @@ static bool set_config(struct fov_ffmpeg_output *stream)
 
 	if (!fetch_service_info(stream, &config, &code))
 		goto fail;
-	if (!setup_video_settings(stream, &config, &code))
+	if (!setup_global_video_settings(stream, &config, &code))
 		goto fail;
 
 	setup_audio_settings(stream, &config);
@@ -1362,7 +1231,7 @@ static inline int64_t rescale_ts2(AVStream *stream, AVRational codec_time_base, 
  */
 void mpegts_write_packet(struct fov_ffmpeg_output *stream, struct encoder_packet *encpacket)
 {
-	if (stopping(stream) || !stream->ff_data.video || !stream->ff_data.video_ctx || !stream->ff_data.audio_infos)
+	if (stopping(stream) || !stream->ff_data.videos || !stream->ff_data.videos_ctx || !stream->ff_data.audio_infos)
 		return;
 	bool is_video = encpacket->type == OBS_ENCODER_VIDEO;
 	if (!is_video) {
@@ -1370,11 +1239,11 @@ void mpegts_write_packet(struct fov_ffmpeg_output *stream, struct encoder_packet
 			return;
 	}
 
-	AVStream *avstream = is_video ? stream->ff_data.video
+	AVStream *avstream = is_video ? stream->ff_data.videos
 				      : stream->ff_data.audio_infos[encpacket->track_idx].stream;
 	AVPacket *packet = NULL;
 
-	const AVRational codec_time_base = is_video ? stream->ff_data.video_ctx->time_base
+	const AVRational codec_time_base = is_video ? stream->ff_data.videos_ctx->time_base
 						    : stream->ff_data.audio_infos[encpacket->track_idx].ctx->time_base;
 
 	packet = av_packet_alloc();
@@ -1408,7 +1277,7 @@ static bool write_header(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_dat
 	/* get mpegts muxer settings (can be used with rist, srt, rtp, etc ... */
 	if ((ret = av_dict_parse_string(&dict, data->config.muxer_settings, "=", " ", 0))) {
 		fov_output_log_error(LOG_WARNING, data, "Failed to parse muxer settings: %s, %s",
-					data->config.muxer_settings, av_err2str(ret));
+				     data->config.muxer_settings, av_err2str(ret));
 
 		av_dict_free(&dict);
 		return false;
@@ -1429,7 +1298,7 @@ static bool write_header(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_dat
 	ret = avformat_write_header(data->output, &dict);
 	if (ret < 0) {
 		fov_output_log_error(LOG_WARNING, data, "Error setting stream header for '%s': %s", data->config.url,
-					av_err2str(ret));
+				     av_err2str(ret));
 		return false;
 	}
 
