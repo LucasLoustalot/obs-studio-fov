@@ -132,7 +132,10 @@ static bool apply_video_track_format(AVCodecContext *out_context, const struct o
 	out_context->coded_width = out_context->width;   // TODO: Maybe change this back data to ->config.scale_width ?
 	out_context->coded_height = out_context->height; // TODO: Maybe change this back to data->config.scale_height ?
 	out_context->time_base = (AVRational){ovi->fps_den, ovi->fps_num};
-
+	if (out_data->output->oformat->flags & AVFMT_GLOBALHEADER) {
+		out_context->flags &= ~AV_CODEC_FLAG_GLOBAL_HEADER;
+	}
+	out_data->output->flags |= AVFMT_FLAG_AUTO_BSF;
 	out_context->bit_rate = obs_data_get_int(video_track_encoder_settings, "bitrate") * 1000;
 	int keyint_sec = (int)obs_data_get_int(video_track_encoder_settings, "keyint_sec");
 
@@ -1338,6 +1341,7 @@ static bool write_header(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_dat
 {
 	AVDictionary *dict = NULL;
 	int ret;
+
 	/* get mpegts muxer settings (can be used with rist, srt, rtp, etc ... */
 	if ((ret = av_dict_parse_string(&dict, data->config.muxer_settings, "=", " ", 0))) {
 		fov_output_log_error(LOG_WARNING, data, "Failed to parse muxer settings: %s, %s",
@@ -1346,6 +1350,8 @@ static bool write_header(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_dat
 		av_dict_free(&dict);
 		return false;
 	}
+	av_dict_set(&dict, "mpegts_flags", "resend_headers", 0);
+	av_dict_set(&dict, "mpegts_service_type", "digital_tv", 0);
 
 	if (av_dict_count(dict) > 0) {
 		struct dstr str = {0};
