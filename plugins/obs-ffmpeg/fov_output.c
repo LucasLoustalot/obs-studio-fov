@@ -215,7 +215,7 @@ static bool apply_video_track_format(AVCodecContext *out_context, const struct o
 					AV_PKT_DATA_MASTERING_DISPLAY_METADATA, (uint8_t *)mastering,
 					sizeof(*mastering), 0);
 	}
-    return true;
+	return true;
 }
 
 static bool create_video_stream(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_data *data, int track_index)
@@ -251,11 +251,21 @@ static bool create_video_stream(struct fov_ffmpeg_output *stream, struct fov_ffm
 	context = avcodec_alloc_context3(NULL);
 	context->codec_type = codec->type;
 	context->codec_id = codec->id;
-	if (!apply_video_track_format(context, &ovi, data, track_index, video_track_encoder, video_track_encoder_settings)) {
-        error("Failed to apply video track format");
-        obs_data_release(video_track_encoder_settings);
-        return false;
-    }
+	if (!apply_video_track_format(context, &ovi, data, track_index, video_track_encoder,
+				      video_track_encoder_settings)) {
+		error("Failed to apply video track format");
+		obs_data_release(video_track_encoder_settings);
+		return false;
+	}
+
+	// Set track name
+	// AVStream *st = data->videos[track_index];
+	// const char *track_name = obs_encoder_get_name(video_track_encoder);
+	// if (name && st) {
+	// 	av_dict_set(&st->metadata, "title", track_name, 0);
+	// 	av_dict_set(&st->metadata, "service_name", track_name, 0);
+	// 	blog(LOG_INFO, "Setting track %d name to: %s", track_index, name);
+	// }
 
 	obs_data_release(video_track_encoder_settings);
 	return true;
@@ -681,14 +691,21 @@ bool fov_output_data_init(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_da
 	memset(data, 0, sizeof(struct fov_ffmpeg_data));
 	data->config = *config;
 	data->num_audio_streams = config->audio_mix_count;
-	data->num_video_tracks = config->video_tracks;
-    data->videos = bzalloc(sizeof(AVStream *) * data->num_video_tracks);
-    data->videos_ctx = bzalloc(sizeof(AVCodecContext *) * data->num_video_tracks);
 
-    if (!data->videos || !data->videos_ctx) {
-        error("Failed to allocate output");
-        return false;
-    }
+	int video_tracks = 0;
+	while (obs_output_get_video_encoder2(stream->output, video_tracks) != NULL) {
+		video_tracks++;
+	}
+
+	data->num_video_tracks = (video_tracks > 0) ? video_tracks : 1;
+
+	data->videos = bzalloc(sizeof(AVStream *) * data->num_video_tracks);
+	data->videos_ctx = bzalloc(sizeof(AVCodecContext *) * data->num_video_tracks);
+
+	if (!data->videos || !data->videos_ctx) {
+		error("Failed to allocate output");
+		return false;
+	}
 
 	if (!config->url || !*config->url)
 		return false;
@@ -707,7 +724,7 @@ bool fov_output_data_init(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_da
 
 	avformat_alloc_output_context2(&data->output, output_format, NULL, data->config.url);
 	av_dict_set(&data->output->metadata, "service_provider", "obs-studio", 0);
-	av_dict_set(&data->output->metadata, "service_name", "mpegts output", 0);
+	av_dict_set(&data->output->metadata, "service_name", "FOV output", 0);
 
 	if (!data->output) {
 		fov_output_log_error(LOG_WARNING, data, "Couldn't create avformat context");
@@ -794,8 +811,8 @@ static void fov_output_destroy(void *data)
 			pthread_join(stream->start_stop_thread, NULL);
 		pthread_mutex_unlock(&stream->start_stop_mutex);
 
-        bfree(stream->ff_data.videos_ctx);
-        bfree(stream->ff_data.videos);
+		bfree(stream->ff_data.videos_ctx);
+		bfree(stream->ff_data.videos);
 
 		/* Clean up resources */
 		pthread_mutex_destroy(&stream->write_mutex);
@@ -838,7 +855,7 @@ static uint64_t get_packet_sys_dts(struct fov_ffmpeg_output *stream, AVPacket *p
 	if (!found || time_base.den == 0) {
 		return 0;
 	}
-	return start_ts + pause_offset + (uint64_t) av_rescale_q(packet->dts, time_base, (AVRational){1, 1000000000});
+	return start_ts + pause_offset + (uint64_t)av_rescale_q(packet->dts, time_base, (AVRational){1, 1000000000});
 }
 
 static int mpegts_process_packet(struct fov_ffmpeg_output *stream)
