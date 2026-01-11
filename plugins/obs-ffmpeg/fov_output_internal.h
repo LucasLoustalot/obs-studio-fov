@@ -41,35 +41,44 @@ struct fov_ffmpeg_cfg {
 	const char *format_mime_type;
 	const char *muxer_settings;
 	const char *protocol_settings; // not used yet for SRT nor RIST
-	int gop_size;
-	int video_bitrate;
-	int audio_bitrate;
+
+    int gop_size;
 	const char *video_encoder;
+	const char *video_settings;
 	int video_encoder_id;
+	int video_bitrate;
+    int video_tracks; // Video multi-track
+
+	const char *audio_settings;
 	const char *audio_encoder;
+	int audio_bitrate;
 	int audio_encoder_id;
 	int audio_bitrates[MAX_AUDIO_MIXES]; // multi-track
-	const char *video_settings;
-	const char *audio_settings;
 	int audio_mix_count;
 	int audio_tracks;
+    int frame_size; // audio frame size
 	const char *audio_stream_names[MAX_AUDIO_MIXES];
+
 	enum AVPixelFormat format;
+
+    // TODO: remove these, because they are global and i patched the video format function to use encoder settings
 	enum AVColorRange color_range;
 	enum AVColorPrimaries color_primaries;
 	enum AVColorTransferCharacteristic color_trc;
-	enum AVColorSpace colorspace;
-	int max_luminance;
+    enum AVColorSpace colorspace;
+    int max_luminance;
+
 	int scale_width;
 	int scale_height;
 	int width;
 	int height;
-	int frame_size; // audio frame size
+
 	const char *username;
 	const char *password;
 	const char *stream_id;
 	const char *encrypt_passphrase;
-	bool is_srt;
+
+    bool is_srt;
 	bool is_rist;
 	int srt_pkt_size;
 };

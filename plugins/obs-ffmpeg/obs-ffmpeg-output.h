@@ -1,10 +1,14 @@
 #pragma once
 
+#include "media-io/audio-io.h"
+#include "obs.h"
+#include "util/threading.h"
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
+
 #ifdef NEW_MPEGTS_OUTPUT
 #include "obs-ffmpeg-url.h"
 #endif

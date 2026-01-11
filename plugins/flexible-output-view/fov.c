@@ -135,7 +135,7 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 		if (created != true) {
 			created = true;
 
-			fov_app.fov_out = obs_output_create("ffmpeg_mpegts_muxer", "rtmp multitrack video", NULL, NULL);
+			fov_app.fov_out = obs_output_create("fov_output", "rtmp multitrack video", NULL, NULL);
 
 			obs_data_t *service_data = obs_data_create();
 			obs_data_set_string(service_data, "server", rtmp_url);
