@@ -43,7 +43,7 @@ static const char *rtmp_stream_key = "publish:mystream";
 static const int default_width = 1920;
 static const int default_height = 1080;
 static const int debug_framerate = 30;
-static const int debug_bitrate = 5000;
+// static const int debug_bitrate = 5000;
 
 typedef struct fov_output_internal_s {
 	obs_output_t *obs_output_ref;
@@ -136,10 +136,10 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 			obs_data_set_string(service_data, "server", rtmp_url);
 			obs_data_set_string(service_data, "url", rtmp_url);
 			obs_data_set_string(service_data, "key", rtmp_stream_key);
-			obs_service_update(fov_app.fov_service, service_data);
 			// obs_data_set_string(service_data, "bearer_token", rtmp_stream_key);
 
 			fov_app.fov_service = obs_service_create("rtmp_custom", "multitrack video service", service_data, NULL);
+			obs_service_update(fov_app.fov_service, service_data);
 			obs_output_set_service(fov_app.fov_out, fov_app.fov_service);
 			obs_data_release(service_data);
 
@@ -160,10 +160,10 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 			for (int i = 0; i < fov_app.nb_sources; i++) {
 				char encoder_name[128];
 				obs_data_t *videoEncoderSettings = obs_encoder_defaults(v_enc_id);
-				obs_data_set_int(videoEncoderSettings, "keyint", 60);
-				obs_data_set_string(videoEncoderSettings, "rate_control", "CBR");
-				obs_data_set_int(videoEncoderSettings, "bitrate", debug_bitrate);
-				obs_data_set_bool(videoEncoderSettings, "disable_scenecut", true);
+				// obs_data_set_int(videoEncoderSettings, "keyint", 60);
+				// obs_data_set_string(videoEncoderSettings, "rate_control", "CBR");
+				// obs_data_set_int(videoEncoderSettings, "bitrate", debug_bitrate);
+				// obs_data_set_bool(videoEncoderSettings, "disable_scenecut", true);
 
 				uint32_t width = obs_source_get_base_width(fov_app.source_refs[i]);
 				uint32_t height = obs_source_get_base_height(fov_app.source_refs[i]);
@@ -175,38 +175,36 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 				debug("FOV: Setting source %s encoder parameters to %dx%d",
 				      obs_source_get_name(fov_app.source_refs[i]), width, height);
 
-				obs_data_set_int(videoEncoderSettings, "width", width);
-				obs_data_set_int(videoEncoderSettings, "height", height);
-				obs_data_set_int(videoEncoderSettings, "range", VIDEO_RANGE_DEFAULT);
-				obs_data_set_int(videoEncoderSettings, "colorspace", VIDEO_CS_DEFAULT);
-				obs_data_set_int(videoEncoderSettings, "framerate", debug_framerate);
-				obs_data_set_int(videoEncoderSettings, "profile", 77); // AV_PROFILE_H264_MAIN
-				obs_data_set_bool(videoEncoderSettings, "disable_scenecut", true);
-				obs_data_set_int(videoEncoderSettings, "track_index", i);
-				obs_data_set_bool(videoEncoderSettings, "repeat_headers", true);
-				obs_data_set_string(videoEncoderSettings, "header_type", "annexb");
+				// obs_data_set_int(videoEncoderSettings, "width", width);
+				// obs_data_set_int(videoEncoderSettings, "height", height);
+				// obs_data_set_int(videoEncoderSettings, "range", VIDEO_RANGE_DEFAULT);
+				// obs_data_set_int(videoEncoderSettings, "colorspace", VIDEO_CS_DEFAULT);
+				// obs_data_set_int(videoEncoderSettings, "framerate", debug_framerate);
+				// obs_data_set_int(videoEncoderSettings, "profile", 77); // AV_PROFILE_H264_MAIN
+				// obs_data_set_bool(videoEncoderSettings, "disable_scenecut", true);
+				// obs_data_set_int(videoEncoderSettings, "track_index", i);
+				// obs_data_set_bool(videoEncoderSettings, "repeat_headers", true);
+				// obs_data_set_string(videoEncoderSettings, "header_type", "annexb");
 
 				snprintf(encoder_name, sizeof(encoder_name), "FOV Track %d - %s",i, obs_source_get_name(fov_app.source_refs[i]));
 				obs_encoder_t *v_encoder =
 				obs_video_encoder_create(v_enc_id, encoder_name, videoEncoderSettings, NULL);
-				obs_encoder_set_scaled_size(v_encoder, width, height);
-				obs_encoder_set_video(v_encoder, fov_app.source_video_context[i]);
 				if (!v_encoder) {
 					debug("FOV: Failed to create video encoder %d", i);
 				}
-
 				// Passer le video_t de la source
+				obs_encoder_set_scaled_size(v_encoder, width, height);
 				obs_encoder_set_video(v_encoder, fov_app.source_video_context[i]);
 
 
 				obs_encoder_set_frame_rate_divisor(v_encoder, 1);
 
-				if (i == 0) {
-					obs_output_set_video_encoder(fov_app.fov_out, v_encoder);
-				} else {
+				// if (i == 0) {
+				// 	obs_output_set_video_encoder(fov_app.fov_out, v_encoder);
+				// } else {
 					obs_encoder_set_group(v_encoder, fov_app.encoder_group);
 					obs_output_set_video_encoder2(fov_app.fov_out, v_encoder, i);
-				}
+				// }
 
 
 
