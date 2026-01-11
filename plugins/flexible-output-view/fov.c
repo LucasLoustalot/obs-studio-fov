@@ -6,8 +6,6 @@
  * @date 2025-09-13
  */
 
-#include "fov_output.h"
-
 #include <obs-frontend-api.h>
 #include "media-io/video-io.h"
 #include "obs-data.h"
@@ -17,10 +15,7 @@
 #include <obs-module.h>
 #include <time.h>
 
-#define xstr(a) str(a)
-#define str(a) #a
-
-#define debug(format, ...) blog(LOG_DEBUG, "FOV: " format " at "__FILE__ ":" xstr(__LINE__), ##__VA_ARGS__)
+#define debug(format, ...) blog(LOG_DEBUG, "FOV: " format, ##__VA_ARGS__)
 #define info(format, ...) blog(LOG_INFO, "FOV: " format, ##__VA_ARGS__)
 #define warn(format, ...) blog(LOG_WARNING, "FOV: " format, ##__VA_ARGS__)
 
@@ -256,35 +251,29 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 
 bool obs_module_load(void)
 {
-	// Registration of the fov_output
-	debug("Registering fov_output");
-	obs_register_output(&fov_output_info);
+	debug("Le module FOV - test 44 est charge !");
 
+	memset(&fov_app, 0, sizeof(fov_app));
+	obs_frontend_add_event_callback(frontend_event, &fov_app);
 
-
-
-	// memset(&fov_app, 0, sizeof(fov_app));
-	// obs_frontend_add_event_callback(frontend_event, &fov_app);
-
-	debug("Module loaded");
 	return true;
 }
 
 void obs_module_unload()
 {
-	// for (int i = 0; i < fov_app.nb_sources; i++) {
-	// 	if (fov_app.source_refs[i])
-	// 		obs_source_release(fov_app.source_refs[i]);
-	// 	if (fov_app.source_views[i])
-	// 		obs_view_destroy(fov_app.source_views[i]);
-	// }
-	// bfree(fov_app.source_refs);
-	// bfree(fov_app.source_views);
-	// bfree(fov_app.source_video_context);
+	for (int i = 0; i < fov_app.nb_sources; i++) {
+		if (fov_app.source_refs[i])
+			obs_source_release(fov_app.source_refs[i]);
+		if (fov_app.source_views[i])
+			obs_view_destroy(fov_app.source_views[i]);
+	}
+	bfree(fov_app.source_refs);
+	bfree(fov_app.source_views);
+	bfree(fov_app.source_video_context);
 
 	// Stop output safely
-	// obs_output_force_stop(fov_app.fov_out);
+	obs_output_force_stop(fov_app.fov_out);
 
 
-	debug("Module unloaded");
+	debug("FOV module decharge");
 }

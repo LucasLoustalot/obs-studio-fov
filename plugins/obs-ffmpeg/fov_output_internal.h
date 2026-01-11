@@ -33,8 +33,6 @@
 #define info(format, ...) do_log(LOG_INFO, format, ##__VA_ARGS__)
 #define error(format, ...) do_log(LOG_ERROR, format, ##__VA_ARGS__)
 
-
-
 struct fov_ffmpeg_cfg {
 	const char *url;
 	const char *format_name;
