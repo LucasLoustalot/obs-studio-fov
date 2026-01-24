@@ -18,6 +18,7 @@
 #define debug(format, ...) blog(LOG_DEBUG, "FOV: " format, ##__VA_ARGS__)
 #define info(format, ...) blog(LOG_INFO, "FOV: " format, ##__VA_ARGS__)
 #define warn(format, ...) blog(LOG_WARNING, "FOV: " format, ##__VA_ARGS__)
+#define OUT_ALIGN(x, a) (((x)+(a)-1)&~((a)-1))
 
 static struct fov_system {
 	obs_output_t *fov_out;
@@ -40,8 +41,8 @@ static const char *rtmp_url = "srt://127.0.0.1:9999?mode=listener";
 // static const char *rtmp_url = "srt://127.0.0.1:8890?streamid=publish:mystream";
 // publish:mystream
 static const char *rtmp_stream_key = "publish:mystream";
-static const int default_width = 1920;
-static const int default_height = 1080;
+// static const int default_width = 1920;
+// static const int default_height = 1080;
 static const int debug_framerate = 30;
 // static const int debug_bitrate = 5000;
 
@@ -67,10 +68,10 @@ static bool fov_setup_source_view(void *fov_out_internal, obs_source_t *source)
 
 			struct obs_video_info ovi = {0};
 			obs_get_video_info(&ovi);
-			ovi.output_height = obs_source_get_width(source);
-			ovi.output_width = obs_source_get_height(source);
-			ovi.base_width = obs_source_get_base_width(source);
-			ovi.base_height = obs_source_get_base_height(source);
+			ovi.output_width = OUT_ALIGN(obs_source_get_width(source), 16);
+			ovi.output_height = OUT_ALIGN(obs_source_get_height(source), 16);
+			ovi.base_width = OUT_ALIGN(obs_source_get_base_width(source), 16);
+			ovi.base_height = OUT_ALIGN(obs_source_get_base_height(source), 16);
 			ovi.fps_den = 1;
 			ovi.fps_num = debug_framerate;
 			ovi.colorspace = VIDEO_CS_DEFAULT;
@@ -165,15 +166,15 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 				// obs_data_set_int(videoEncoderSettings, "bitrate", debug_bitrate);
 				// obs_data_set_bool(videoEncoderSettings, "disable_scenecut", true);
 
-				uint32_t width = obs_source_get_base_width(fov_app.source_refs[i]);
-				uint32_t height = obs_source_get_base_height(fov_app.source_refs[i]);
-				if (width == 0 || height == 0) {
-					width = default_width;
-					height = default_height;
-				}
+				// uint32_t width = obs_source_get_base_width(fov_app.source_refs[i]);
+				// uint32_t height = obs_source_get_base_height(fov_app.source_refs[i]);
+				// if (width == 0 || height == 0) {
+				// 	width = default_width;
+				// 	height = default_height;
+				// }
 
-				debug("FOV: Setting source %s encoder parameters to %dx%d",
-				      obs_source_get_name(fov_app.source_refs[i]), width, height);
+				// debug("FOV: Setting source %s encoder parameters to %dx%d",
+				//       obs_source_get_name(fov_app.source_refs[i]), width, height);
 
 				// obs_data_set_int(videoEncoderSettings, "width", width);
 				// obs_data_set_int(videoEncoderSettings, "height", height);
@@ -193,7 +194,7 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 					debug("FOV: Failed to create video encoder %d", i);
 				}
 				// Passer le video_t de la source
-				obs_encoder_set_scaled_size(v_encoder, width, height);
+				// obs_encoder_set_scaled_size(v_encoder, width, height);
 				obs_encoder_set_video(v_encoder, fov_app.source_video_context[i]);
 
 

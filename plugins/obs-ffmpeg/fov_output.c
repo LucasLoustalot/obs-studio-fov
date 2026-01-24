@@ -261,14 +261,6 @@ static bool create_video_stream(struct fov_ffmpeg_output *stream, struct fov_ffm
 		return false;
 	}
 
-	// Set track name
-	// AVStream *st = data->videos[track_index];
-	// const char *track_name = obs_encoder_get_name(video_track_encoder);
-	// if (name && st) {
-	// 	av_dict_set(&st->metadata, "title", track_name, 0);
-	// 	av_dict_set(&st->metadata, "service_name", track_name, 0);
-	// 	blog(LOG_INFO, "Setting track %d name to: %s", track_index, name);
-	// }
 
 	obs_data_release(video_track_encoder_settings);
 	return true;
@@ -1352,6 +1344,9 @@ static bool write_header(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_dat
 	}
 	av_dict_set(&dict, "mpegts_flags", "resend_headers", 0);
 	av_dict_set(&dict, "mpegts_service_type", "digital_tv", 0);
+	av_dict_set(&data->output->metadata, "service_name", "FOV Multi-Stream", 0);
+	av_dict_set(&data->output->metadata, "service_provider", "FOV Team", 0);
+	av_dict_set(&dict, "mpegts_flags", "resend_headers+pat_pmt_at_frames", 0);
 
 	if (av_dict_count(dict) > 0) {
 		struct dstr str = {0};
