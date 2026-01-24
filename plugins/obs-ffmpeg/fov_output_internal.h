@@ -40,36 +40,17 @@ struct fov_ffmpeg_cfg {
 	const char *muxer_settings;
 	const char *protocol_settings; // not used yet for SRT nor RIST
 
-    int gop_size;
 	const char *video_encoder;
-	const char *video_settings;
 	int video_encoder_id;
-	int video_bitrate;
     int video_tracks; // Video multi-track
 
-	const char *audio_settings;
 	const char *audio_encoder;
 	int audio_bitrate;
 	int audio_encoder_id;
 	int audio_bitrates[MAX_AUDIO_MIXES]; // multi-track
 	int audio_mix_count;
-	int audio_tracks;
     int frame_size; // audio frame size
 	const char *audio_stream_names[MAX_AUDIO_MIXES];
-
-	enum AVPixelFormat format;
-
-    // TODO: remove these, because they are global and i patched the video format function to use encoder settings
-	enum AVColorRange color_range;
-	enum AVColorPrimaries color_primaries;
-	enum AVColorTransferCharacteristic color_trc;
-    enum AVColorSpace colorspace;
-    int max_luminance;
-
-	int scale_width;
-	int scale_height;
-	int width;
-	int height;
 
 	const char *username;
 	const char *password;
@@ -91,20 +72,11 @@ struct fov_ffmpeg_data {
 	AVCodecContext **videos_ctx;
     int num_video_tracks;       // Support for multiple video tracks
 
-
 	struct fov_ffmpeg_audio_info *audio_infos;
-	const AVCodec *acodec;
-	const AVCodec *vcodec;
 	AVFormatContext *output;
-	struct SwsContext *swscale;
 
-	int64_t total_frames;
-	AVFrame *vframe;
 	int frame_size;
 
-	uint64_t start_timestamp;
-
-	int64_t total_samples[MAX_AUDIO_MIXES];
 	uint32_t audio_samplerate;
 	enum audio_format audio_format;
 	size_t audio_planes;
@@ -112,7 +84,6 @@ struct fov_ffmpeg_data {
 	int num_audio_streams;
 
 	/* audio_tracks is a bitmask storing the indices of the mixes */
-	int audio_tracks;
 	struct deque excess_frames[MAX_AUDIO_MIXES][MAX_AV_PLANES];
 	uint8_t *samples[MAX_AUDIO_MIXES][MAX_AV_PLANES];
 	AVFrame *aframe[MAX_AUDIO_MIXES];
@@ -129,7 +100,6 @@ struct fov_ffmpeg_output {
 	volatile bool active;
 	struct fov_ffmpeg_data ff_data;
 
-	bool connecting;
 	pthread_t start_thread;
 
 	uint64_t total_bytes;
@@ -146,7 +116,7 @@ struct fov_ffmpeg_output {
 	os_event_t *stop_event;
 
 	DARRAY(AVPacket *) packets;
-#ifdef FOV_NEW_MPEGTS_OUTPUT
+
 	/* used for SRT & RIST */
 	URLContext *h;
 	AVIOContext *s;
@@ -158,7 +128,6 @@ struct fov_ffmpeg_output {
 	pthread_mutex_t start_stop_mutex;
 	volatile bool start_stop_thread_active;
 	bool has_connected;
-#endif
 };
 
 struct fov_mpegts_cmd {
@@ -167,8 +136,4 @@ struct fov_mpegts_cmd {
 	struct fov_ffmpeg_output *stream;
 	uint64_t ts;
 };
-
-bool fov_ffmpeg_data_init(struct fov_ffmpeg_data *data, struct fov_ffmpeg_cfg *config);
-void fov_ffmpeg_data_free(struct fov_ffmpeg_data *data);
-void fov_output_log_error(int log_level, struct fov_ffmpeg_data *data, const char *format, ...);
 

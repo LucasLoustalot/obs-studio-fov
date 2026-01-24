@@ -127,10 +127,6 @@ static bool apply_video_track_format(AVCodecContext *out_context, const struct o
 	const struct video_output_info *voi = video_output_get_info(encoder_video);
 
 	/* Set video bitrate & gop through video encoder settings */
-	out_context->width = obs_encoder_get_width(video_track_encoder);
-	out_context->height = obs_encoder_get_height(video_track_encoder);
-	out_context->coded_width = out_context->width;   // TODO: Maybe change this back data to ->config.scale_width ?
-	out_context->coded_height = out_context->height; // TODO: Maybe change this back to data->config.scale_height ?
 	out_context->time_base = (AVRational){ovi->fps_den, ovi->fps_num};
 	if (out_data->output->oformat->flags & AVFMT_GLOBALHEADER) {
 		out_context->flags &= ~AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -182,8 +178,6 @@ static bool apply_video_track_format(AVCodecContext *out_context, const struct o
 	out_data->videos[track_index]->time_base = out_context->time_base;
 	out_data->videos[track_index]->avg_frame_rate = av_inv_q(out_context->time_base);
 	out_data->videos_ctx[track_index] = out_context;
-	out_data->config.width = out_data->config.scale_width;
-	out_data->config.height = out_data->config.scale_height;
 
 	avcodec_parameters_from_context(out_data->videos[track_index]->codecpar, out_context);
 
@@ -983,10 +977,6 @@ static bool setup_global_video_settings(struct fov_ffmpeg_output *stream, struct
 	static const int default_setting_track = 0;
 
 	obs_encoder_t *video_track_encoder = obs_output_get_video_encoder2(stream->output, default_setting_track);
-	config->width = (int)obs_output_get_width(stream->output);
-	config->height = (int)obs_output_get_height(stream->output);
-	config->scale_width = config->width;
-	config->scale_height = config->height;
 	config->video_encoder = obs_encoder_get_codec(video_track_encoder);
 	if (strcmp(config->video_encoder, "h264") == 0)
 		config->video_encoder_id = AV_CODEC_ID_H264;
@@ -1096,10 +1086,6 @@ static bool set_config(struct fov_ffmpeg_output *stream)
 
 	setup_audio_settings(stream, &config);
 	setup_muxer_settings(stream, &config);
-
-	/* unused for now; placeholder. */
-	config.video_settings = "";
-	config.audio_settings = "";
 
 	if (!fov_output_finalize(stream, &config, &code))
 		goto fail;
