@@ -14,11 +14,14 @@
 #include <stdlib.h>
 #include <obs-module.h>
 #include <time.h>
+#include "fov_output.h"
 
 #define debug(format, ...) blog(LOG_DEBUG, "FOV: " format, ##__VA_ARGS__)
 #define info(format, ...) blog(LOG_INFO, "FOV: " format, ##__VA_ARGS__)
 #define warn(format, ...) blog(LOG_WARNING, "FOV: " format, ##__VA_ARGS__)
 #define OUT_ALIGN(x, a) (((x)+(a)-1)&~((a)-1))
+
+OBS_MODULE_USE_DEFAULT_LOCALE("fov", "en")
 
 static struct fov_system {
 	obs_output_t *fov_out;
@@ -201,7 +204,8 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 
 bool obs_module_load(void)
 {
-	debug("Le module FOV - test 44 est charge !");
+	debug("Le module FOV charge !");
+	obs_register_output(&fov_output_muxer);
 
 	memset(&fov_app, 0, sizeof(fov_app));
 	obs_frontend_add_event_callback(frontend_event, &fov_app);

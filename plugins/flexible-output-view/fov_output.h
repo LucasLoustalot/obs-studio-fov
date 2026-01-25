@@ -10,5 +10,5 @@
 
 
 // Extern, declared in plugins/obs-ffmpeg/fov_output.c
-extern struct obs_output_info fov_output_info;
+extern struct obs_output_info fov_output_muxer;
 

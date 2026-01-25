@@ -130,10 +130,14 @@ struct fov_ffmpeg_output {
 	bool has_connected;
 };
 
+enum fov_mpegts_cmd_type { MPEGTS_CMD_START, MPEGTS_CMD_STOP };
+
 struct fov_mpegts_cmd {
-	enum mpegts_cmd_type type;
+	enum fov_mpegts_cmd_type type;
 	bool signal_stop;
 	struct fov_ffmpeg_output *stream;
 	uint64_t ts;
 };
+
+
 
