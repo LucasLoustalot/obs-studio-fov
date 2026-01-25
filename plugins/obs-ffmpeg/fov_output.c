@@ -12,7 +12,6 @@
 #include "obs.h"
 #include "util/bmem.h"
 #include <libavutil/pixfmt.h>
-#include <unistd.h>
 
 static void fov_output_set_last_error(struct fov_ffmpeg_data *data, const char *error)
 {

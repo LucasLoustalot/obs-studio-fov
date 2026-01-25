@@ -12,6 +12,7 @@
 #include "obs-source.h"
 #include "obs.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <obs-module.h>
 #include <time.h>
 
