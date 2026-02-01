@@ -36,7 +36,7 @@ static const char *a_enc_id = "ffmpeg_aac";
 // static const char *format = "mp4";
 // static const char *path = "/home/lucas/Desktop";
 // static const char *filename = "/home/lucas/Desktop/FOVtest.mp4";
-static const char *fov_srt_url = "srt://127.0.0.1:9999?mode=listener";
+static const char *fov_srt_url = "srt://127.0.0.1:9999?mode=caller";
 static const char *fov_backend_url = "http://localhost:8000";
 // static const char *rtmp_url = "srt://127.0.0.1:8890?streamid=publish:mystream";
 // publish:mystream
