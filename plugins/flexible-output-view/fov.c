@@ -9,17 +9,15 @@
 #include <obs-frontend-api.h>
 #include "media-io/video-io.h"
 #include "obs-data.h"
+#include "obs-service.h"
 #include "obs-source.h"
 #include "obs.h"
+#include "fov_output.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <obs-module.h>
 #include <time.h>
 
-#define debug(format, ...) blog(LOG_DEBUG, "FOV: " format, ##__VA_ARGS__)
-#define info(format, ...) blog(LOG_INFO, "FOV: " format, ##__VA_ARGS__)
-#define warn(format, ...) blog(LOG_WARNING, "FOV: " format, ##__VA_ARGS__)
-#define OUT_ALIGN(x, a) (((x)+(a)-1)&~((a)-1))
 
 static struct fov_system {
 	obs_output_t *fov_out;
@@ -38,10 +36,11 @@ static const char *a_enc_id = "ffmpeg_aac";
 // static const char *format = "mp4";
 // static const char *path = "/home/lucas/Desktop";
 // static const char *filename = "/home/lucas/Desktop/FOVtest.mp4";
-static const char *rtmp_url = "srt://127.0.0.1:9999?mode=listener";
+static const char *fov_srt_url = "srt://127.0.0.1:9999?mode=listener";
+static const char *fov_backend_url = "http://localhost:8000";
 // static const char *rtmp_url = "srt://127.0.0.1:8890?streamid=publish:mystream";
 // publish:mystream
-static const char *rtmp_stream_key = "publish:mystream";
+// static const char *rtmp_stream_key = "publish:mystream";
 // static const int default_width = 1920;
 // static const int default_height = 1080;
 static const int debug_framerate = 30;
@@ -132,23 +131,12 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 		if (created != true) {
 			created = true;
 
-			fov_app.fov_out = obs_output_create("fov_output", "rtmp multitrack video", NULL, NULL);
-
-			obs_data_t *service_data = obs_data_create();
-			obs_data_set_string(service_data, "server", rtmp_url);
-			obs_data_set_string(service_data, "url", rtmp_url);
-			obs_data_set_string(service_data, "key", rtmp_stream_key);
-			// obs_data_set_string(service_data, "bearer_token", rtmp_stream_key);
-
-			fov_app.fov_service = obs_service_create("rtmp_custom", "multitrack video service", service_data, NULL);
-			obs_service_update(fov_app.fov_service, service_data);
-			obs_output_set_service(fov_app.fov_out, fov_app.fov_service);
-			obs_data_release(service_data);
+			fov_app.fov_out = obs_output_create("fov_output", "fov multitrack video", NULL, NULL);
 
 			// Configuration du muxer, sortie vers un fichier
 			obs_data_t *muxer_settings = obs_data_create();
-			obs_data_set_string(muxer_settings, "url", rtmp_url);
-			obs_data_set_string(muxer_settings, "path", rtmp_url);
+			obs_data_set_string(muxer_settings, "url", fov_srt_url);
+			obs_data_set_string(muxer_settings, "path", fov_srt_url);
 			obs_data_set_int(muxer_settings, "video_track_count", fov_app.nb_sources);
 			// obs_data_set_string(muxer_settings, "directory", path);
 			// obs_data_set_string(muxer_settings, "format", "fmp4");
@@ -159,7 +147,8 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 			fov_app.encoder_group = obs_encoder_group_create();
 
 			// Pour chaque source
-			for (int i = 0; i < fov_app.nb_sources; i++) {
+			int nbvideosources = 0;
+			for (nbvideosources = 0; nbvideosources < fov_app.nb_sources; nbvideosources++) {
 				char encoder_name[128];
 				obs_data_t *videoEncoderSettings = obs_encoder_defaults(v_enc_id);
 				// obs_data_set_int(videoEncoderSettings, "keyint", 60);
@@ -188,15 +177,15 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 				// obs_data_set_bool(videoEncoderSettings, "repeat_headers", true);
 				// obs_data_set_string(videoEncoderSettings, "header_type", "annexb");
 
-				snprintf(encoder_name, sizeof(encoder_name), "FOV Track %d - %s",i, obs_source_get_name(fov_app.source_refs[i]));
+				snprintf(encoder_name, sizeof(encoder_name), "FOV Track %d - %s",nbvideosources, obs_source_get_name(fov_app.source_refs[nbvideosources]));
 				obs_encoder_t *v_encoder =
 				obs_video_encoder_create(v_enc_id, encoder_name, videoEncoderSettings, NULL);
 				if (!v_encoder) {
-					debug("FOV: Failed to create video encoder %d", i);
+					debug("FOV: Failed to create video encoder %d", nbvideosources);
 				}
 				// Passer le video_t de la source
 				// obs_encoder_set_scaled_size(v_encoder, width, height);
-				obs_encoder_set_video(v_encoder, fov_app.source_video_context[i]);
+				obs_encoder_set_video(v_encoder, fov_app.source_video_context[nbvideosources]);
 
 
 				obs_encoder_set_frame_rate_divisor(v_encoder, 1);
@@ -205,7 +194,7 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 				// 	obs_output_set_video_encoder(fov_app.fov_out, v_encoder);
 				// } else {
 					obs_encoder_set_group(v_encoder, fov_app.encoder_group);
-					obs_output_set_video_encoder2(fov_app.fov_out, v_encoder, i);
+					obs_output_set_video_encoder2(fov_app.fov_out, v_encoder, nbvideosources);
 				// }
 
 
@@ -237,8 +226,19 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 			}
 			// Démarrage des encodeurs et de l'output
 
+			obs_data_t *service_data = obs_data_create();
+			obs_data_set_string(service_data, "server", fov_backend_url);
+			obs_data_set_int(service_data, "video_encoder_count", nbvideosources);
+			fov_app.fov_service = obs_service_create("fov_service", "multitrack video service", service_data, NULL);
+			obs_service_update(fov_app.fov_service, service_data);
+			obs_output_set_service(fov_app.fov_out, fov_app.fov_service);
+			obs_data_release(service_data);
+
+
+
 			obs_output_set_reconnect_settings(fov_app.fov_out, 10, 10);
 			obs_output_initialize_encoders(fov_app.fov_out, 0);
+			blog(LOG_INFO, "DEBUG: fov_out: %p, fov_service: %p", fov_app.fov_out, fov_app.fov_service);
 			if (obs_output_start(fov_app.fov_out)) {
 				obs_output_begin_data_capture(fov_app.fov_out, OBS_OUTPUT_MULTI_TRACK_VIDEO | OBS_OUTPUT_AUDIO);
 			} else {
@@ -252,6 +252,7 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 bool obs_module_load(void)
 {
 	debug("Le module FOV - test 44 est charge !");
+	obs_register_service(&fov_service);
 
 	memset(&fov_app, 0, sizeof(fov_app));
 	obs_frontend_add_event_callback(frontend_event, &fov_app);
