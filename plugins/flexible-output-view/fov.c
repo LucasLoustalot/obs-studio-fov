@@ -228,6 +228,7 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 
 			obs_data_t *service_data = obs_data_create();
 			obs_data_set_string(service_data, "server", fov_backend_url);
+			obs_data_set_string(service_data, "srt_endpoint", fov_srt_url);
 			obs_data_set_int(service_data, "video_encoder_count", nbvideosources);
 			fov_app.fov_service = obs_service_create("fov_service", "multitrack video service", service_data, NULL);
 			obs_service_update(fov_app.fov_service, service_data);

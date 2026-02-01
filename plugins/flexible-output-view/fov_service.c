@@ -20,6 +20,7 @@
 
 typedef struct fov_service_s {
 	char *backend_url;
+	char *srt_url;
 	int nb_video_encoders;
 } fov_service_t;
 
@@ -39,6 +40,7 @@ static void fov_service_update(void *data, obs_data_t *settings)
 	bfree(fov_service->backend_url);
 
 	fov_service->backend_url = bstrdup(obs_data_get_string(settings, "server"));
+	fov_service->srt_url = bstrdup(obs_data_get_string(settings, "srt_endpoint"));
 	fov_service->nb_video_encoders = obs_data_get_int(settings, "video_encoder_count");
 	//     service->key = bstrdup(obs_data_get_string(settings, "key"));
 	//     service->use_auth = obs_data_get_bool(settings, "use_auth");
@@ -159,16 +161,17 @@ static void fov_service_apply_settings(void *data, obs_data_t *video_settings, o
 
 static const char *fov_service_custom_url(void *data)
 {
-	blog(LOG_INFO, "FOV Service custom url\n");
+	UNUSED_PARAMETER(data);
+
 	fov_service_t *service = data;
-	return service->backend_url;
+	return service->srt_url;
 }
 
 static const char *fov_service_custom_key(void *data)
 {
 	blog(LOG_INFO, "FOV Service custom key\n");
 	UNUSED_PARAMETER(data);
-	return "Key";
+	return NULL;
 }
 
 static const char *fov_service_custom_username(void *data)
