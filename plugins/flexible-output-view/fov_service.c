@@ -8,7 +8,6 @@
 
 #include "obs-data.h"
 #include "obs.h"
-#include <stdlib.h>
 #include <stdio.h>
 #include <obs-module.h>
 #include <time.h>
@@ -21,7 +20,7 @@
 typedef struct fov_service_s {
 	char *backend_url;
 	char *srt_url;
-	int nb_video_encoders;
+	long long nb_video_encoders;
 } fov_service_t;
 
 const char *fov_service_get_name(void *unused)
@@ -105,7 +104,7 @@ static const char *fov_service_get_protocol(void *data)
 static bool fov_service_can_try_to_connect(void *data)
 {
 	fov_service_t *fov_service = data;
-	blog(LOG_INFO, "FOV Service can try connect, nb_video_tracks: %d\n", fov_service->nb_video_encoders);
+	blog(LOG_INFO, "FOV Service can try connect, nb_video_tracks: %lld\n", fov_service->nb_video_encoders);
 
 	if (fov_service->backend_url == NULL || fov_service->nb_video_encoders == 0) {
 		return false;
@@ -117,7 +116,7 @@ static bool fov_service_can_try_to_connect(void *data)
 	blog(LOG_INFO, "FOV: Making request to backend %s/ffmpeg/start", fov_service->backend_url);
 
 	char json_payload[128];
-	snprintf(json_payload, sizeof(json_payload), "{\"tracks\": %d}", fov_service->nb_video_encoders);
+	snprintf(json_payload, sizeof(json_payload), "{\"tracks\": %lld}", fov_service->nb_video_encoders);
 
 	bool success = false;
 	CURL *curl = curl_easy_init();
@@ -134,7 +133,7 @@ static bool fov_service_can_try_to_connect(void *data)
 			long response_code;
 			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 			if (response_code == 200) {
-				blog(LOG_INFO, "FOV: Backend acknowledged %d tracks", fov_service->nb_video_encoders);
+				blog(LOG_INFO, "FOV: Backend acknowledged %lld tracks", fov_service->nb_video_encoders);
 				success = true;
 			} else {
 				blog(LOG_ERROR, "FOV: Backend returned error %ld", response_code);
