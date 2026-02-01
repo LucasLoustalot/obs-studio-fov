@@ -13,7 +13,7 @@
 #include <obs-module.h>
 #include <time.h>
 #include "fov_output.h"
-#include <curl/curl.h>
+#include <util/curl/curl-helper.h>
 #include "util/base.h"
 #include "util/bmem.h"
 #include "fov_output.h"
