@@ -120,9 +120,10 @@ static bool fov_setup_source_view(void *fov_out_internal, obs_source_t *source)
 static void frontend_event(enum obs_frontend_event event, void *data)
 {
 	static bool created = false;
+	static bool started = false;
 	(void)data;
 
-	if (event == OBS_FRONTEND_EVENT_STUDIO_MODE_ENABLED) {
+	if (event == OBS_FRONTEND_EVENT_STUDIO_MODE_ENABLED || event == OBS_FRONTEND_EVENT_STUDIO_MODE_DISABLED) {
 		debug("--- FOV Studio mode enabled ---");
 		debug("--- FOV Setup sources ---");
 		obs_enum_sources(fov_setup_source_view, NULL);
@@ -242,9 +243,18 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 			blog(LOG_INFO, "DEBUG: fov_out: %p, fov_service: %p", fov_app.fov_out, fov_app.fov_service);
 			if (obs_output_start(fov_app.fov_out)) {
 				obs_output_begin_data_capture(fov_app.fov_out, OBS_OUTPUT_MULTI_TRACK_VIDEO | OBS_OUTPUT_AUDIO);
+				started = true;
 			} else {
 				const char *error = obs_output_get_last_error(fov_app.fov_out);
 				debug("FOV failed to start output: %s", error);
+			}
+		} else {
+			if (!started) {
+				obs_output_start(fov_app.fov_out);
+				started = true;
+			} else {
+				obs_output_stop(fov_app.fov_out);
+				started = false;
 			}
 		}
 	}
