@@ -100,12 +100,12 @@ const char *FOVService::getURL(void) noexcept
 		} else {
 			blog(LOG_ERROR, "FOV: Backend returned error [HTTP %d]: %s\n", request.getResponseCode(),
 			     request.getResponseContent().c_str());
-			return nullptr;
+			return "\0";
 		}
 
 	} catch (const SimpleCurlException &e) {
 		blog(LOG_ERROR, "FOV Service error: %s\n", e.what());
-		return nullptr;
+		return "\0";
 	}
 }
 
