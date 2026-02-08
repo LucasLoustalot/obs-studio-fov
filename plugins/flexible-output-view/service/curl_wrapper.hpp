@@ -39,11 +39,15 @@ class SimpleCurlRequest {
 public:
 	enum httpMethod { HTTP_GET, HTTP_POST };
 
-	SimpleCurlRequest(const std::string &url, httpMethod method = HTTP_GET);
+    SimpleCurlRequest() = delete;
+    SimpleCurlRequest(const SimpleCurlRequest&) = delete;
+    SimpleCurlRequest &operator=(SimpleCurlRequest &) = delete;
+
+	explicit SimpleCurlRequest(const std::string &url, httpMethod method = HTTP_GET);
 	~SimpleCurlRequest();
 
 	void setHttpMethod(httpMethod method);
-	void setHeaders(std::vector<std::string> &headers);
+	void setHeaders(const std::vector<std::string> &headers);
 	void setRequestPayload(const std::string &payload);
 
 	int performRequest(int timeout = 5);

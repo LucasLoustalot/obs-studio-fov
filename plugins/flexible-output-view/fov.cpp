@@ -9,7 +9,6 @@
 #include <obs-frontend-api.h>
 #include "media-io/video-io.h"
 #include "obs-data.h"
-#include "obs-service.h"
 #include "obs-source.h"
 #include "obs.h"
 #include "fov_output.h"
@@ -18,6 +17,7 @@
 #include <obs-module.h>
 #include <time.h>
 
+#include "service/fov_service.hpp"
 
 static struct fov_system {
 	obs_output_t *fov_out;
@@ -29,22 +29,12 @@ static struct fov_system {
 	int nb_sources;
 } fov_app;
 
-// static const int nbVideoEncodeurs = 3;
 static const int nbAudioEncodeurs = 1;
 static const char *v_enc_id = "obs_x264";
 static const char *a_enc_id = "ffmpeg_aac";
-// static const char *format = "mp4";
-// static const char *path = "/home/lucas/Desktop";
-// static const char *filename = "/home/lucas/Desktop/FOVtest.mp4";
 static const char *fov_srt_url = "srt://127.0.0.1:9999?mode=caller";
 static const char *fov_backend_url = "http://localhost:8000";
-// static const char *rtmp_url = "srt://127.0.0.1:8890?streamid=publish:mystream";
-// publish:mystream
-// static const char *rtmp_stream_key = "publish:mystream";
-// static const int default_width = 1920;
-// static const int default_height = 1080;
 static const int debug_framerate = 30;
-// static const int debug_bitrate = 5000;
 
 typedef struct fov_output_internal_s {
 	obs_output_t *obs_output_ref;
@@ -82,12 +72,12 @@ static bool fov_setup_source_view(void *fov_out_internal, obs_source_t *source)
 			fov_app.nb_sources += 1;
 			int current_idx = fov_app.nb_sources - 1;
 
-			fov_app.source_views =
-				realloc(fov_app.source_views, (sizeof(obs_view_t *) * fov_app.nb_sources));
-			fov_app.source_video_context =
-				realloc(fov_app.source_video_context, (sizeof(video_t *) * fov_app.nb_sources));
-			fov_app.source_refs =
-				realloc(fov_app.source_refs, (sizeof(obs_source_t *) * fov_app.nb_sources));
+			fov_app.source_views = static_cast<obs_view_t **>(
+				realloc(fov_app.source_views, (sizeof(obs_view_t *) * fov_app.nb_sources)));
+			fov_app.source_video_context = static_cast<video_t **>(
+				realloc(fov_app.source_video_context, (sizeof(video_t *) * fov_app.nb_sources)));
+			fov_app.source_refs = static_cast<obs_source_t **>(
+				realloc(fov_app.source_refs, (sizeof(obs_source_t *) * fov_app.nb_sources)));
 
 			if (!fov_app.source_views || !fov_app.source_video_context || !fov_app.source_refs) {
 				debug("FOV: Failed to realloc for %s. Out of memory.", obs_source_get_name(source));
@@ -139,9 +129,6 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 			obs_data_set_string(muxer_settings, "url", fov_srt_url);
 			obs_data_set_string(muxer_settings, "path", fov_srt_url);
 			obs_data_set_int(muxer_settings, "video_track_count", fov_app.nb_sources);
-			// obs_data_set_string(muxer_settings, "directory", path);
-			// obs_data_set_string(muxer_settings, "format", "fmp4");
-			// obs_data_set_string(muxer_settings, "extension", format);
 			obs_output_update(fov_app.fov_out, muxer_settings);
 
 			// Creation d'un groupe d'encodeur
@@ -152,59 +139,21 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 			for (nbvideosources = 0; nbvideosources < fov_app.nb_sources; nbvideosources++) {
 				char encoder_name[128];
 				obs_data_t *videoEncoderSettings = obs_encoder_defaults(v_enc_id);
-				// obs_data_set_int(videoEncoderSettings, "keyint", 60);
-				// obs_data_set_string(videoEncoderSettings, "rate_control", "CBR");
-				// obs_data_set_int(videoEncoderSettings, "bitrate", debug_bitrate);
-				// obs_data_set_bool(videoEncoderSettings, "disable_scenecut", true);
 
-				// uint32_t width = obs_source_get_base_width(fov_app.source_refs[i]);
-				// uint32_t height = obs_source_get_base_height(fov_app.source_refs[i]);
-				// if (width == 0 || height == 0) {
-				// 	width = default_width;
-				// 	height = default_height;
-				// }
-
-				// debug("FOV: Setting source %s encoder parameters to %dx%d",
-				//       obs_source_get_name(fov_app.source_refs[i]), width, height);
-
-				// obs_data_set_int(videoEncoderSettings, "width", width);
-				// obs_data_set_int(videoEncoderSettings, "height", height);
-				// obs_data_set_int(videoEncoderSettings, "range", VIDEO_RANGE_DEFAULT);
-				// obs_data_set_int(videoEncoderSettings, "colorspace", VIDEO_CS_DEFAULT);
-				// obs_data_set_int(videoEncoderSettings, "framerate", debug_framerate);
-				// obs_data_set_int(videoEncoderSettings, "profile", 77); // AV_PROFILE_H264_MAIN
-				// obs_data_set_bool(videoEncoderSettings, "disable_scenecut", true);
-				// obs_data_set_int(videoEncoderSettings, "track_index", i);
-				// obs_data_set_bool(videoEncoderSettings, "repeat_headers", true);
-				// obs_data_set_string(videoEncoderSettings, "header_type", "annexb");
-
-				snprintf(encoder_name, sizeof(encoder_name), "FOV Track %d - %s",nbvideosources, obs_source_get_name(fov_app.source_refs[nbvideosources]));
+				snprintf(encoder_name, sizeof(encoder_name), "FOV Track %d - %s", nbvideosources,
+					 obs_source_get_name(fov_app.source_refs[nbvideosources]));
 				obs_encoder_t *v_encoder =
-				obs_video_encoder_create(v_enc_id, encoder_name, videoEncoderSettings, NULL);
+					obs_video_encoder_create(v_enc_id, encoder_name, videoEncoderSettings, NULL);
 				if (!v_encoder) {
 					debug("FOV: Failed to create video encoder %d", nbvideosources);
 				}
+
 				// Passer le video_t de la source
 				// obs_encoder_set_scaled_size(v_encoder, width, height);
 				obs_encoder_set_video(v_encoder, fov_app.source_video_context[nbvideosources]);
-
-
 				obs_encoder_set_frame_rate_divisor(v_encoder, 1);
-
-				// if (i == 0) {
-				// 	obs_output_set_video_encoder(fov_app.fov_out, v_encoder);
-				// } else {
-					obs_encoder_set_group(v_encoder, fov_app.encoder_group);
-					obs_output_set_video_encoder2(fov_app.fov_out, v_encoder, nbvideosources);
-				// }
-
-
-
-				// static bool isfirst = true;
-				// if (isfirst) {
-				// 	isfirst = false;
-				// 	obs_output_set_video_encoder(fov_app.fov_out, v_encoder);
-				// }
+				obs_encoder_set_group(v_encoder, fov_app.encoder_group);
+				obs_output_set_video_encoder2(fov_app.fov_out, v_encoder, nbvideosources);
 
 				obs_data_release(videoEncoderSettings);
 			}
@@ -231,18 +180,18 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 			obs_data_set_string(service_data, "server", fov_backend_url);
 			obs_data_set_string(service_data, "srt_endpoint", fov_srt_url);
 			obs_data_set_int(service_data, "video_encoder_count", nbvideosources);
-			fov_app.fov_service = obs_service_create("fov_service", "multitrack video service", service_data, NULL);
+			fov_app.fov_service =
+				obs_service_create("fov_service", "multitrack video service", service_data, NULL);
 			obs_service_update(fov_app.fov_service, service_data);
 			obs_output_set_service(fov_app.fov_out, fov_app.fov_service);
 			obs_data_release(service_data);
-
-
 
 			obs_output_set_reconnect_settings(fov_app.fov_out, 10, 10);
 			obs_output_initialize_encoders(fov_app.fov_out, 0);
 			blog(LOG_INFO, "DEBUG: fov_out: %p, fov_service: %p", fov_app.fov_out, fov_app.fov_service);
 			if (obs_output_start(fov_app.fov_out)) {
-				obs_output_begin_data_capture(fov_app.fov_out, OBS_OUTPUT_MULTI_TRACK_VIDEO | OBS_OUTPUT_AUDIO);
+				obs_output_begin_data_capture(fov_app.fov_out,
+							      OBS_OUTPUT_MULTI_TRACK_VIDEO | OBS_OUTPUT_AUDIO);
 				started = true;
 			} else {
 				const char *error = obs_output_get_last_error(fov_app.fov_out);
@@ -251,9 +200,12 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 		} else {
 			if (!started) {
 				obs_output_start(fov_app.fov_out);
+				obs_output_begin_data_capture(fov_app.fov_out,
+							      OBS_OUTPUT_MULTI_TRACK_VIDEO | OBS_OUTPUT_AUDIO);
 				started = true;
 			} else {
 				obs_output_stop(fov_app.fov_out);
+				obs_output_end_data_capture(fov_app.fov_out);
 				started = false;
 			}
 		}
@@ -263,7 +215,7 @@ static void frontend_event(enum obs_frontend_event event, void *data)
 bool obs_module_load(void)
 {
 	debug("Le module FOV - test 44 est charge !");
-	obs_register_service(&fov_service);
+	registerFOVService();
 
 	memset(&fov_app, 0, sizeof(fov_app));
 	obs_frontend_add_event_callback(frontend_event, &fov_app);
@@ -285,7 +237,6 @@ void obs_module_unload()
 
 	// Stop output safely
 	obs_output_force_stop(fov_app.fov_out);
-
 
 	debug("FOV module decharge");
 }

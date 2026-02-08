@@ -50,7 +50,7 @@ void SimpleCurlRequest::setHttpMethod(httpMethod method)
 	}
 }
 
-void SimpleCurlRequest::setHeaders(std::vector<std::string> &headers)
+void SimpleCurlRequest::setHeaders(const std::vector<std::string> &headers)
 {
 	if (requestHeaders != nullptr) {
 		curl_slist_free_all(requestHeaders);
