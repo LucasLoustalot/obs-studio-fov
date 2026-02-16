@@ -129,7 +129,8 @@ void FOVService::deactivate(void) noexcept
 			request.setHeaders({"Content-Type: application/json"});
 			request.performRequest();
 
-			blog(LOG_INFO, "FOV: Stop request finished background thread.");
+			blog(LOG_INFO, "FOV: Stop request finished background thread: backend [HTTP %d]: %s\n",
+			     request.getResponseCode(), request.getResponseContent().c_str());
 
 		} catch (const std::exception &e) {
 			blog(LOG_ERROR, "FOV Service stop error: %s\n", e.what());
@@ -176,14 +177,13 @@ void registerFOVService(void)
 		return static_cast<FOVService *>(priv_data)->getConnectInfo((enum obs_service_connect_info)type);
 	};
 
-    info.activate = [](void *priv_data, obs_data_t *settings) -> void {
+	info.activate = [](void *priv_data, obs_data_t *settings) -> void {
 		return static_cast<FOVService *>(priv_data)->activate(settings);
 	};
 
-    info.deactivate = [](void *priv_data) -> void {
+	info.deactivate = [](void *priv_data) -> void {
 		return static_cast<FOVService *>(priv_data)->deactivate();
 	};
-
 
 	obs_register_service(&info);
 }
