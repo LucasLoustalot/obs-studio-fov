@@ -80,12 +80,14 @@ const char *FOVService::getURL(void) noexcept
 
 	// Making post request to backend
 	const std::string APIRoute = backendURL + API_FFMPEG_START_ROUTE;
+	const std::string RouteTest = "http://localhost:8000/ffmpeg/register";
 	nlohmann::json jsonPayload;
+	jsonPayload["streamId"] = "BotKz";
 	jsonPayload["tracks"] = nbVideoTracks;
 
 	blog(LOG_INFO, "FOV Service making request to backend %s\n", APIRoute.c_str());
 	try {
-		SimpleCurlRequest request(APIRoute, SimpleCurlRequest::HTTP_POST);
+		SimpleCurlRequest request(RouteTest, SimpleCurlRequest::HTTP_POST);
 
 		request.setHeaders({"Content-Type: application/json"});
 		request.setRequestPayload(jsonPayload.dump());
@@ -95,6 +97,9 @@ const char *FOVService::getURL(void) noexcept
 			blog(LOG_INFO, "FOV Service backend acknowledged %zu tracks [HTTP %d]: %s\n", nbVideoTracks,
 			     request.getResponseCode(), request.getResponseContent().c_str());
 			started = true;
+			nlohmann::json response = nlohmann::json::parse(request.getResponseContent());
+			srtURL = response["srtUrl"].get<std::string>();
+			blog(LOG_INFO, "FOV Service got SRT url = %s\n", srtURL.c_str());
 			return srtURL.c_str();
 
 		} else {

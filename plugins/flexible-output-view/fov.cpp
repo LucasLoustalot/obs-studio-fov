@@ -40,11 +40,11 @@ static void frontend_event_callback(enum obs_frontend_event event, void *private
 			} else {
 				fov->setVideoSettings({"obs_x264", 30});
 				fov->setAudioSettings({"ffmpeg_aac"});
-				fov->setSRTURL("srt://127.0.0.1:9999?mode=caller");
+				//fov->setSRTURL("srt://127.0.0.1:9999?mode=caller");
 				fov->setBackendURL("http://localhost:8000");
 
 				fov->init();
-				blog(LOG_DEBUG,"FOV System init");
+				blog(LOG_DEBUG, "FOV System init");
 
 				auto add_source_proc = [](void *data, obs_source_t *source) {
 					auto *system = static_cast<FOVSystem *>(data);
@@ -56,7 +56,7 @@ static void frontend_event_callback(enum obs_frontend_event event, void *private
 				blog(LOG_DEBUG, "FOV System init successfully with frontend load.");
 			}
 		} catch (const std::exception &e) {
-			blog(LOG_DEBUG,"Failed to start FOV System: %s", e.what());
+			blog(LOG_DEBUG, "Failed to start FOV System: %s", e.what());
 		}
 	}
 }

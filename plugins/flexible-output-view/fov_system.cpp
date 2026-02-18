@@ -129,9 +129,9 @@ void FOVSystem::start()
 	if (videoTracks.empty()) {
 		throw std::runtime_error("FOVSystem: require at least 1 video source to work !");
 	}
-	if (SRTURL.empty() || backendURL.empty()) {
-		throw std::runtime_error("FOVSystem: the URL was not set for FOVSystem !");
-	}
+	//if (SRTURL.empty() || backendURL.empty()) {
+	//	throw std::runtime_error("FOVSystem: the URL was not set for FOVSystem !");
+	//}
 
 	// Set fov_output settings
 	OBSDataPtr outputSettings(obs_data_create());
@@ -191,9 +191,9 @@ void FOVSystem::stop()
 	debug("FOVSystem: Stopping output...");
 
 	if (fovOutput) {
-        if (audioEncoder) {
-            obs_encoder_set_audio(audioEncoder.get(), nullptr);
-        }
+		if (audioEncoder) {
+			obs_encoder_set_audio(audioEncoder.get(), nullptr);
+		}
 		for (size_t i = 0; i < videoTracks.size(); i++) {
 			obs_output_set_video_encoder2(fovOutput.get(), nullptr, i);
 		}
