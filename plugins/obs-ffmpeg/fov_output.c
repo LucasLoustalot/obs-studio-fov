@@ -260,7 +260,6 @@ static bool create_video_stream(struct fov_ffmpeg_output *stream, struct fov_ffm
 		return false;
 	}
 
-
 	obs_data_release(video_track_encoder_settings);
 	return true;
 }
@@ -1341,11 +1340,10 @@ static bool write_header(struct fov_ffmpeg_output *stream, struct fov_ffmpeg_dat
 		av_dict_free(&dict);
 		return false;
 	}
-	av_dict_set(&dict, "mpegts_flags", "resend_headers", 0);
 	av_dict_set(&dict, "mpegts_service_type", "digital_tv", 0);
 	av_dict_set(&data->output->metadata, "service_name", "FOV Multi-Stream", 0);
 	av_dict_set(&data->output->metadata, "service_provider", "FOV Team", 0);
-	av_dict_set(&dict, "mpegts_flags", "resend_headers+pat_pmt_at_frames", 0);
+	av_dict_set(&dict, "mpegts_flags", "resend_headers", 1);
 
 	if (av_dict_count(dict) > 0) {
 		struct dstr str = {0};
@@ -1389,7 +1387,8 @@ static void fov_output_data(void *data, struct encoder_packet *packet)
 	int code;
 	if (!stream->got_headers) {
 		if (get_extradata(stream)) {
-			stream->got_headers = true;
+			if (packet->keyframe)
+				stream->got_headers = true;
 		} else {
 			warn("Failed to retrieve headers");
 			code = OBS_OUTPUT_INVALID_STREAM;

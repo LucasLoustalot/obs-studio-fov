@@ -18,6 +18,53 @@
 #include <stdexcept>
 #include <string>
 
+FOVSystem::VideoTrack::VideoTrack(obs_source_t *rawSource, const OBSDataPtr &encoderSettings,
+				  const VideoSettings &videoSettings)
+{
+	std::string encoderName = "FOV video track " + std::string(obs_source_get_name(rawSource));
+	struct obs_video_info ovi{0};
+
+	// Video settings
+	obs_get_video_info(&ovi);
+	ovi.output_width = OUT_ALIGN(obs_source_get_width(rawSource), 16);
+	ovi.output_height = OUT_ALIGN(obs_source_get_height(rawSource), 16);
+	ovi.base_width = OUT_ALIGN(obs_source_get_base_width(rawSource), 16);
+	ovi.base_height = OUT_ALIGN(obs_source_get_base_height(rawSource), 16);
+	ovi.fps_den = 1;
+	ovi.fps_num = videoSettings.framerate;
+	ovi.colorspace = VIDEO_CS_DEFAULT;
+	ovi.range = VIDEO_RANGE_DEFAULT;
+
+	// Owning the source and view
+	source.reset(obs_source_get_ref(rawSource));
+	view = obs_view_create();
+
+	// Set encoder specific settings
+	obs_data_set_int(encoderSettings.get(), "keyint_sec", videoSettings.keyframe_sec);
+	obs_data_set_int(encoderSettings.get(), "bitrate", videoSettings.bitrate);
+	obs_data_set_default_bool(encoderSettings.get(), "repeat_headers", true);
+
+	// Creating the encoder
+	encoder.reset(obs_video_encoder_create(videoSettings.OBSEncoderID.c_str(), encoderName.c_str(),
+					       encoderSettings.get(), nullptr));
+
+	// Creating the dedicated pipeline (separate render thread)
+	videoContext = obs_view_add2(view, &ovi);
+
+	obs_view_set_source(view, 0, source.get());
+	obs_encoder_set_video(encoder.get(), videoContext);
+}
+
+FOVSystem::VideoTrack::~VideoTrack()
+{
+	if (encoder) {
+		obs_encoder_set_video(encoder.get(), nullptr);
+	}
+	if (view) {
+		obs_view_destroy(view);
+	}
+}
+
 FOVSystem::FOVSystem() : hasInit(false), started(false) {}
 
 void FOVSystem::init()
@@ -141,6 +188,7 @@ void FOVSystem::start()
 	obs_data_set_string(outputSettings.get(), "url", SRTURL.c_str());
 	obs_data_set_string(outputSettings.get(), "path", SRTURL.c_str());
 	obs_data_set_int(outputSettings.get(), "video_track_count", videoTracks.size());
+	obs_data_set_int(outputSettings.get(), "keyint_sec", videoSettings.keyframe_sec);
 	obs_output_update(fovOutput.get(), outputSettings.get());
 
 	OBSDataPtr serviceSettings(obs_data_create());
