@@ -21,7 +21,7 @@
 
 #include "curl_wrapper.hpp"
 
-#define API_FFMPEG_START_ROUTE "/ffmpeg/start"
+#define API_FFMPEG_START_ROUTE "/ffmpeg/register"
 #define API_FFMPEG_STOP_ROUTE "/ffmpeg/stop"
 
 extern "C" {
