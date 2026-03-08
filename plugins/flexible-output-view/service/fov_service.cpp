@@ -35,7 +35,7 @@ const char *FOVService::getName() const noexcept
 
 void FOVService::update(obs_data_t *settings) noexcept
 {
-	int nbtracks = 0;
+	size_t nbtracks = 0;
 	backendURL = obs_data_get_string(settings, "server");
 
 	nbtracks = obs_data_get_int(settings, "video_encoder_count");
