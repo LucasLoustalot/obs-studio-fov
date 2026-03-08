@@ -35,9 +35,15 @@ const char *FOVService::getName() const noexcept
 
 void FOVService::update(obs_data_t *settings) noexcept
 {
+	int nbtracks = 0;
 	backendURL = obs_data_get_string(settings, "server");
-	// srtURL = obs_data_get_string(settings, "srt_endpoint");
-	nbVideoTracks = obs_data_get_int(settings, "video_encoder_count");
+
+	nbtracks = obs_data_get_int(settings, "video_encoder_count");
+	if (nbtracks <= 0) {
+		blog(LOG_WARNING, "FOV Service missing/invalid 'video_encoder_count' property, defaulting to 1");
+		nbtracks = 1;
+	}
+	nbVideoTracks = nbtracks;
 	streamKey = obs_data_get_string(settings, "key");
 
 	blog(LOG_INFO, "FOV Service settings changed\n");
@@ -76,6 +82,7 @@ const char *FOVService::getConnectInfo(uint32_t type) noexcept
 const char *FOVService::getURL(void) noexcept
 {
 	if (backendURL.empty() || nbVideoTracks == 0) {
+		blog(LOG_WARNING, "FOV Service: Misconfigured service, check the backend URL or nbVideoTracks");
 		return nullptr;
 	}
 
