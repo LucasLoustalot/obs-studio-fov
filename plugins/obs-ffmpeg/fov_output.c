@@ -10,8 +10,10 @@
 #include "fov_output_internal.h"
 #include "obs-output.h"
 #include "obs.h"
+#include "util/base.h"
 #include "util/bmem.h"
 #include <libavutil/pixfmt.h>
+#include <stdio.h>
 
 static void fov_output_set_last_error(struct fov_ffmpeg_data *data, const char *error)
 {
@@ -955,6 +957,10 @@ static bool fetch_service_info(struct fov_ffmpeg_output *stream, struct fov_ffmp
 		return false;
 	}
 	config->url = obs_service_get_connect_info(service, OBS_SERVICE_CONNECT_INFO_SERVER_URL);
+	if (config->url == NULL) {
+		blog(LOG_ERROR, "FOV Service returned an empty url !");
+		return false;
+	}
 	config->username = obs_service_get_connect_info(service, OBS_SERVICE_CONNECT_INFO_USERNAME);
 	config->password = obs_service_get_connect_info(service, OBS_SERVICE_CONNECT_INFO_PASSWORD);
 	config->stream_id = obs_service_get_connect_info(service, OBS_SERVICE_CONNECT_INFO_STREAM_ID);

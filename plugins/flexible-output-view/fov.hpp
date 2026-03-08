@@ -67,7 +67,8 @@ public:
 	void setAudioSettings(const AudioSettings &settings);
 
 	void setBackendURL(const std::string &backendURL);
-	void setSRTURL(const std::string &srtURL);
+	// void setSRTURL(const std::string &srtURL);
+	void setStreamKey(const std::string &key);
 
 	void addSource(obs_source_t *source);
 
@@ -101,4 +102,5 @@ private:
 
 	std::string backendURL;
 	std::string SRTURL;
+	std::string streamKey;
 };

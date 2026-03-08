@@ -30,6 +30,8 @@ void registerFOVService(void);
 
 class FOVService {
 public:
+
+
 	FOVService(obs_data_t *settings, obs_service_t *) noexcept;
 	~FOVService() noexcept;
 
@@ -45,6 +47,7 @@ public:
 private:
 	std::string backendURL;
 	std::string srtURL;
+	std::string streamKey;
 	size_t nbVideoTracks;
 	bool started;
 };

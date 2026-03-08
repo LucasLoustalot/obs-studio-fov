@@ -185,16 +185,17 @@ void FOVSystem::start()
 	if (!outputSettings) {
 		throw std::runtime_error("FOVSystem: cannot allocate output settings !");
 	}
-	obs_data_set_string(outputSettings.get(), "url", SRTURL.c_str());
-	obs_data_set_string(outputSettings.get(), "path", SRTURL.c_str());
+	// obs_data_set_string(outputSettings.get(), "url", SRTURL.c_str());
+	// obs_data_set_string(outputSettings.get(), "path", SRTURL.c_str());
 	obs_data_set_int(outputSettings.get(), "video_track_count", videoTracks.size());
 	obs_data_set_int(outputSettings.get(), "keyint_sec", videoSettings.keyframe_sec);
 	obs_output_update(fovOutput.get(), outputSettings.get());
 
 	OBSDataPtr serviceSettings(obs_data_create());
 	obs_data_set_string(serviceSettings.get(), "server", backendURL.c_str());
-	obs_data_set_string(serviceSettings.get(), "srt_endpoint", SRTURL.c_str());
+	// obs_data_set_string(serviceSettings.get(), "srt_endpoint", SRTURL.c_str());
 	obs_data_set_int(serviceSettings.get(), "video_encoder_count", videoTracks.size());
+	obs_data_set_string(serviceSettings.get(), "key", streamKey.c_str());
 	obs_service_update(fovService.get(), serviceSettings.get());
 
 	size_t i = 0;
@@ -267,11 +268,16 @@ void FOVSystem::setBackendURL(const std::string &url)
 	backendURL = url;
 }
 
-void FOVSystem::setSRTURL(const std::string &url)
-{
-	std::unique_lock<std::mutex> lock(mutex);
+// void FOVSystem::setSRTURL(const std::string &url)
+// {
+// 	std::unique_lock<std::mutex> lock(mutex);
 
-	SRTURL = url;
+// 	SRTURL = url;
+// }
+
+void FOVSystem::setStreamKey(const std::string &key)
+{
+	streamKey = key;
 }
 
 FOVSystem::~FOVSystem()

@@ -40,9 +40,9 @@ static void frontend_event_callback(enum obs_frontend_event event, void *private
 			} else {
 				fov->setVideoSettings({"obs_x264", 30, 2, 6000});
 				fov->setAudioSettings({"ffmpeg_aac"});
-				//fov->setSRTURL("srt://127.0.0.1:9999?mode=caller");
 				// fov->setBackendURL("https://api.eip.lucasloustalot.com");
 				fov->setBackendURL("http://localhost:4000");
+				fov->setStreamKey("BotKz");
 
 				fov->init();
 				blog(LOG_DEBUG, "FOV System init");

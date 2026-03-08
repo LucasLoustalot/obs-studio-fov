@@ -13,6 +13,9 @@
 #include <thread>
 #include <vector>
 
+static const char *fov_audio_codecs[] = {"opus", "aac", nullptr};
+static const char *fov_video_codecs[] = {"h264", nullptr};
+
 FOVService::FOVService(obs_data_t *settings, obs_service_t *) noexcept
 	: backendURL(""),
 	  srtURL(""),
@@ -33,8 +36,9 @@ const char *FOVService::getName() const noexcept
 void FOVService::update(obs_data_t *settings) noexcept
 {
 	backendURL = obs_data_get_string(settings, "server");
-	srtURL = obs_data_get_string(settings, "srt_endpoint");
+	// srtURL = obs_data_get_string(settings, "srt_endpoint");
 	nbVideoTracks = obs_data_get_int(settings, "video_encoder_count");
+	streamKey = obs_data_get_string(settings, "key");
 
 	blog(LOG_INFO, "FOV Service settings changed\n");
 }
@@ -44,6 +48,7 @@ obs_properties_t *FOVService::getProperties(void) noexcept
 	obs_properties_t *ppts = obs_properties_create();
 
 	obs_properties_add_text(ppts, "server", "URL", OBS_TEXT_DEFAULT);
+	obs_properties_add_text(ppts, "key", "Stream Key", OBS_TEXT_DEFAULT);
 	obs_properties_add_text(ppts, "srt_endpoint", "SRT url for the obs output", OBS_TEXT_DEFAULT);
 
 	return ppts;
@@ -81,7 +86,7 @@ const char *FOVService::getURL(void) noexcept
 	// Making post request to backend
 	const std::string APIRoute = backendURL + API_FFMPEG_START_ROUTE;
 	nlohmann::json jsonPayload;
-	jsonPayload["streamId"] = "BotKz";
+	jsonPayload["streamId"] = streamKey;
 	jsonPayload["tracks"] = nbVideoTracks;
 
 	blog(LOG_INFO, "FOV Service making request to backend %s\n", APIRoute.c_str());
@@ -150,6 +155,9 @@ void registerFOVService(void)
 	struct obs_service_info info = {};
 
 	info.id = "fov_service";
+	info.get_output_type = [](void *) -> const char * {
+		return "fov_output";
+	};
 	info.get_name = [](void *priv_data) -> const char * {
 		return static_cast<FOVService *>(priv_data)->getName();
 	};
@@ -184,9 +192,14 @@ void registerFOVService(void)
 	info.activate = [](void *priv_data, obs_data_t *settings) -> void {
 		return static_cast<FOVService *>(priv_data)->activate(settings);
 	};
-
 	info.deactivate = [](void *priv_data) -> void {
 		return static_cast<FOVService *>(priv_data)->deactivate();
+	};
+	info.get_supported_video_codecs = [](void *) -> const char ** {
+		return fov_video_codecs;
+	};
+	info.get_supported_audio_codecs = [](void *) -> const char ** {
+		return fov_audio_codecs;
 	};
 
 	obs_register_service(&info);
