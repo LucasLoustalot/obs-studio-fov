@@ -1,66 +1,98 @@
+/**
+ * @file fov_output_internal.h
+ * @author The FOV Team
+ * @brief FOV output internal structures definition
+ * @version 0.1
+ * @date 2026-01-10
+ */
+
 #pragma once
 
-#include "media-io/audio-io.h"
-#include "obs.h"
-#include "util/threading.h"
-#include <libavutil/opt.h>
-#include <libavutil/pixdesc.h>
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
+#define FOV_NEW_MPEGTS_OUTPUT
 
-#ifdef NEW_MPEGTS_OUTPUT
-#include "obs-ffmpeg-url.h"
-#endif
 
-struct ffmpeg_cfg {
+#include <obs-module.h>
+#include <util/deque.h>
+#include <util/threading.h>
+#include <util/dstr.h>
+#include <util/darray.h>
+#include <util/platform.h>
+
+#include "obs-ffmpeg-output.h"
+#include "obs-ffmpeg-formats.h"
+#include "obs-ffmpeg-compat.h"
+#include "obs-ffmpeg-rist.h"
+#include "obs-ffmpeg-srt.h"
+#include <libavutil/channel_layout.h>
+#include <libavutil/mastering_display_metadata.h>
+
+#define do_log(level, format, ...) \
+	blog(level, "[obs-fov: '%s']: " format, obs_output_get_name(stream->output), ##__VA_ARGS__)
+
+#define warn(format, ...) do_log(LOG_WARNING, format, ##__VA_ARGS__)
+#define info(format, ...) do_log(LOG_INFO, format, ##__VA_ARGS__)
+#define error(format, ...) do_log(LOG_ERROR, format, ##__VA_ARGS__)
+
+struct fov_ffmpeg_cfg {
 	const char *url;
 	const char *format_name;
 	const char *format_mime_type;
 	const char *muxer_settings;
 	const char *protocol_settings; // not used yet for SRT nor RIST
-	int gop_size;
-	int video_bitrate;
-	int audio_bitrate;
+
+    int gop_size;
 	const char *video_encoder;
+	const char *video_settings;
 	int video_encoder_id;
+	int video_bitrate;
+    int video_tracks; // Video multi-track
+
+	const char *audio_settings;
 	const char *audio_encoder;
+	int audio_bitrate;
 	int audio_encoder_id;
 	int audio_bitrates[MAX_AUDIO_MIXES]; // multi-track
-	const char *video_settings;
-	const char *audio_settings;
 	int audio_mix_count;
 	int audio_tracks;
+    int frame_size; // audio frame size
 	const char *audio_stream_names[MAX_AUDIO_MIXES];
+
 	enum AVPixelFormat format;
+
+    // TODO: remove these, because they are global and i patched the video format function to use encoder settings
 	enum AVColorRange color_range;
 	enum AVColorPrimaries color_primaries;
 	enum AVColorTransferCharacteristic color_trc;
-	enum AVColorSpace colorspace;
-	int max_luminance;
+    enum AVColorSpace colorspace;
+    int max_luminance;
+
 	int scale_width;
 	int scale_height;
 	int width;
 	int height;
-	int frame_size; // audio frame size
+
 	const char *username;
 	const char *password;
 	const char *stream_id;
 	const char *encrypt_passphrase;
-	bool is_srt;
+
+    bool is_srt;
 	bool is_rist;
 	int srt_pkt_size;
 };
 
-struct ffmpeg_audio_info {
+struct fov_ffmpeg_audio_info {
 	AVStream *stream;
 	AVCodecContext *ctx;
 };
 
-struct ffmpeg_data {
-	AVStream *video;
-	AVCodecContext *video_ctx;
-	struct ffmpeg_audio_info *audio_infos;
+struct fov_ffmpeg_data {
+	AVStream **videos;
+	AVCodecContext **videos_ctx;
+    int num_video_tracks;       // Support for multiple video tracks
+
+
+	struct fov_ffmpeg_audio_info *audio_infos;
 	const AVCodec *acodec;
 	const AVCodec *vcodec;
 	AVFormatContext *output;
@@ -85,17 +117,17 @@ struct ffmpeg_data {
 	uint8_t *samples[MAX_AUDIO_MIXES][MAX_AV_PLANES];
 	AVFrame *aframe[MAX_AUDIO_MIXES];
 
-	struct ffmpeg_cfg config;
+	struct fov_ffmpeg_cfg config;
 
 	bool initialized;
 
 	char *last_error;
 };
 
-struct ffmpeg_output {
+struct fov_ffmpeg_output {
 	obs_output_t *output;
 	volatile bool active;
-	struct ffmpeg_data ff_data;
+	struct fov_ffmpeg_data ff_data;
 
 	bool connecting;
 	pthread_t start_thread;
@@ -114,7 +146,7 @@ struct ffmpeg_output {
 	os_event_t *stop_event;
 
 	DARRAY(AVPacket *) packets;
-#ifdef NEW_MPEGTS_OUTPUT
+#ifdef FOV_NEW_MPEGTS_OUTPUT
 	/* used for SRT & RIST */
 	URLContext *h;
 	AVIOContext *s;
@@ -129,15 +161,14 @@ struct ffmpeg_output {
 #endif
 };
 
-#ifdef NEW_MPEGTS_OUTPUT
-enum mpegts_cmd_type { MPEGTS_CMD_START, MPEGTS_CMD_STOP };
-
-struct mpegts_cmd {
+struct fov_mpegts_cmd {
 	enum mpegts_cmd_type type;
 	bool signal_stop;
-	struct ffmpeg_output *stream;
+	struct fov_ffmpeg_output *stream;
 	uint64_t ts;
 };
-#endif
-bool ffmpeg_data_init(struct ffmpeg_data *data, struct ffmpeg_cfg *config);
-void ffmpeg_data_free(struct ffmpeg_data *data);
+
+bool fov_ffmpeg_data_init(struct fov_ffmpeg_data *data, struct fov_ffmpeg_cfg *config);
+void fov_ffmpeg_data_free(struct fov_ffmpeg_data *data);
+void fov_output_log_error(int log_level, struct fov_ffmpeg_data *data, const char *format, ...);
+

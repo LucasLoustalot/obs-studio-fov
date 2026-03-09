@@ -28,14 +28,6 @@ target_sources(
     $<$<PLATFORM_ID:Darwin>:auto-scene-switcher-osx.mm>
     $<$<PLATFORM_ID:Linux,FreeBSD,OpenBSD>:auto-scene-switcher-nix.cpp>
     $<$<PLATFORM_ID:Windows>:auto-scene-switcher-win.cpp>
-    $<$<PLATFORM_ID:Windows>:captions-handler.cpp>
-    $<$<PLATFORM_ID:Windows>:captions-handler.hpp>
-    $<$<PLATFORM_ID:Windows>:captions-mssapi-stream.cpp>
-    $<$<PLATFORM_ID:Windows>:captions-mssapi-stream.hpp>
-    $<$<PLATFORM_ID:Windows>:captions-mssapi.cpp>
-    $<$<PLATFORM_ID:Windows>:captions-mssapi.hpp>
-    $<$<PLATFORM_ID:Windows>:captions.cpp>
-    $<$<PLATFORM_ID:Windows>:captions.hpp>
     auto-scene-switcher.cpp
     auto-scene-switcher.hpp
     frontend-tools.c
@@ -46,7 +38,7 @@ target_sources(
 
 target_sources(
   frontend-tools
-  PRIVATE forms/auto-scene-switcher.ui forms/captions.ui forms/output-timer.ui forms/scripts.ui
+  PRIVATE forms/auto-scene-switcher.ui forms/output-timer.ui forms/scripts.ui
 )
 
 target_compile_options(
