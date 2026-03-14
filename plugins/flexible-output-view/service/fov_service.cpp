@@ -39,7 +39,7 @@ void FOVService::update(obs_data_t *settings) noexcept
 	backendURL = obs_data_get_string(settings, "server");
 
 	nbtracks = obs_data_get_int(settings, "video_encoder_count");
-	if (nbtracks <= 0) {
+	if (nbtracks <= 0 && nbVideoTracks <= 0) {
 		blog(LOG_WARNING, "FOV Service missing/invalid 'video_encoder_count' property, defaulting to 1");
 		nbtracks = 1;
 	}

@@ -46,6 +46,7 @@ using OBSWeakService = OBSRef<obs_weak_service_t *, obs_weak_service_addref, obs
 using OBSWeakCanvas = OBSRef<obs_weak_canvas_t *, obs_weak_canvas_addref, obs_weak_canvas_release>;
 
 #define OBS_AUTORELEASE
+using OBSEncoderGroup = OBSRefAutoRelease<obs_encoder_group_t *, obs_encoder_group_destroy>;
 using OBSObjectAutoRelease = OBSRefAutoRelease<obs_object_t *, obs_object_release>;
 using OBSSourceAutoRelease = OBSRefAutoRelease<obs_source_t *, obs_source_release>;
 using OBSSceneAutoRelease = OBSRefAutoRelease<obs_scene_t *, obs_scene_release>;

@@ -1,5 +1,10 @@
 #include "SimpleOutput.hpp"
+#include "obs.h"
+#include "obs.hpp"
+#include "util/base.h"
 
+#include <cstddef>
+#include <cstring>
 #include <utility/audio-encoders.hpp>
 #include <utility/StartMultiTrackVideoStreamingGuard.hpp>
 #include <widgets/OBSBasic.hpp>
@@ -71,10 +76,15 @@ void SimpleOutput::LoadRecordingPreset_Lossy(const char *encoderId)
 
 void SimpleOutput::LoadStreamingPreset_Lossy(const char *encoderId)
 {
-	videoStreaming = obs_video_encoder_create(encoderId, "simple_video_stream", nullptr, nullptr);
-	if (!videoStreaming)
-		throw "Failed to create video streaming encoder (simple output)";
-	obs_encoder_release(videoStreaming);
+	for (auto &enc : videoStreaming) {
+		enc = obs_video_encoder_create(encoderId, "simple_video_stream", nullptr, nullptr);
+		if (!enc)
+			throw "Failed to create video streaming encoder (simple output)";
+	}
+
+	for (auto &enc : videoStreaming) {
+		obs_encoder_release(enc);
+	}
 }
 
 /* mistakes have been made to lead us to this. */
@@ -126,7 +136,7 @@ void SimpleOutput::LoadRecordingPreset()
 	ffmpegOutput = false;
 
 	if (strcmp(quality, "Stream") == 0) {
-		videoRecording = videoStreaming;
+		videoRecording = videoStreaming[0];
 		audioRecording = audioStreaming;
 		usingRecordingPreset = false;
 		return;
@@ -177,6 +187,11 @@ SimpleOutput::SimpleOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 {
 	const char *encoder = config_get_string(main->Config(), "SimpleOutput", "StreamEncoder");
 	const char *audio_encoder = config_get_string(main->Config(), "SimpleOutput", "StreamAudioEncoder");
+
+	for (auto const &enc : videoStreaming) {
+		obs_encoder_set_group(enc, encoderGroup);
+	}
+	obs_encoder_set_group(audioStreaming, encoderGroup);
 
 	LoadStreamingPreset_Lossy(get_simple_output_encoder(encoder));
 
@@ -265,7 +280,6 @@ void SimpleOutput::Update()
 	bool enforceBitrate = !config_get_bool(main->Config(), "Stream1", "IgnoreRecommended");
 	const char *custom = config_get_string(main->Config(), "SimpleOutput", "x264Settings");
 	const char *encoder = config_get_string(main->Config(), "SimpleOutput", "StreamEncoder");
-	const char *encoder_id = obs_encoder_get_id(videoStreaming);
 	const char *presetType;
 	const char *preset;
 
@@ -303,57 +317,89 @@ void SimpleOutput::Update()
 
 	preset = config_get_string(main->Config(), "SimpleOutput", presetType);
 
-	/* Only use preset2 for legacy/FFmpeg NVENC Encoder. */
-	if (strncmp(encoder_id, "ffmpeg_", 7) == 0 && strcmp(presetType, "NVENCPreset2") == 0) {
-		obs_data_set_string(videoSettings, "preset2", preset);
+	if (isFOV) {
+		videoTracks = 0;
+		auto add_source_proc = [](void *data, obs_source_t *source) {
+			auto *system = static_cast<SimpleOutput *>(data);
+			uint32_t sourceFlags = obs_source_get_output_flags(source);
+			blog(LOG_DEBUG, "truc");
+			if (sourceFlags & OBS_SOURCE_VIDEO) {
+				system->fovAddVidTrack(source);
+			} else if (sourceFlags & OBS_SOURCE_AUDIO) {
+				system->fovAddAudioTrack(source);
+			}
+			return true;
+		};
+		obs_enum_sources(add_source_proc, this);
+		blog(LOG_DEBUG, "fuck this");
+
 	} else {
-		obs_data_set_string(videoSettings, "preset", preset);
+		videoTracks = 1;
+		obs_encoder_set_video(videoStreaming[0].Get(), obs_get_video());
+		obs_encoder_set_audio(audioStreaming, obs_get_audio());
 	}
+	obs_encoder_set_audio(audioArchive, obs_get_audio());
 
-	obs_data_set_string(videoSettings, "rate_control", "CBR");
-	obs_data_set_int(videoSettings, "bitrate", videoBitrate);
+	for (const auto &enc : videoStreaming) {
+		const char *encoder_id = obs_encoder_get_id(enc);
 
-	if (advanced)
-		obs_data_set_string(videoSettings, "x264opts", custom);
+		/* Only use preset2 for legacy/FFmpeg NVENC Encoder. */
+		if (strncmp(encoder_id, "ffmpeg_", 7) == 0 && strcmp(presetType, "NVENCPreset2") == 0) {
+			obs_data_set_string(videoSettings, "preset2", preset);
+		} else {
+			obs_data_set_string(videoSettings, "preset", preset);
+		}
+		if (isFOV)
+			obs_data_set_default_bool(videoSettings, "repeat_headers", true);
 
-	obs_data_set_string(audioSettings, "rate_control", "CBR");
-	obs_data_set_int(audioSettings, "bitrate", audioBitrate);
-
-	obs_service_apply_encoder_settings(main->GetService(), videoSettings, audioSettings);
-
-	if (!enforceBitrate) {
-		int maxVideoBitrate;
-		int maxAudioBitrate;
-		obs_service_get_max_bitrate(main->GetService(), &maxVideoBitrate, &maxAudioBitrate);
-
-		std::string videoBitrateLogString = maxVideoBitrate > 0 ? std::to_string(maxVideoBitrate) : "None";
-		std::string audioBitrateLogString = maxAudioBitrate > 0 ? std::to_string(maxAudioBitrate) : "None";
-
-		blog(LOG_INFO,
-		     "User is ignoring service bitrate limits.\n"
-		     "Service Recommendations:\n"
-		     "\tvideo bitrate: %s\n"
-		     "\taudio bitrate: %s",
-		     videoBitrateLogString.c_str(), audioBitrateLogString.c_str());
-
+		obs_data_set_string(videoSettings, "rate_control", "CBR");
 		obs_data_set_int(videoSettings, "bitrate", videoBitrate);
+
+		if (advanced)
+			obs_data_set_string(videoSettings, "x264opts", custom);
+
+		obs_data_set_string(audioSettings, "rate_control", "CBR");
 		obs_data_set_int(audioSettings, "bitrate", audioBitrate);
+
+		obs_service_apply_encoder_settings(main->GetService(), videoSettings, audioSettings);
+
+		if (!enforceBitrate) {
+			int maxVideoBitrate;
+			int maxAudioBitrate;
+			obs_service_get_max_bitrate(main->GetService(), &maxVideoBitrate, &maxAudioBitrate);
+
+			std::string videoBitrateLogString = maxVideoBitrate > 0 ? std::to_string(maxVideoBitrate)
+										: "None";
+			std::string audioBitrateLogString = maxAudioBitrate > 0 ? std::to_string(maxAudioBitrate)
+										: "None";
+
+			blog(LOG_INFO,
+			     "User is ignoring service bitrate limits.\n"
+			     "Service Recommendations:\n"
+			     "\tvideo bitrate: %s\n"
+			     "\taudio bitrate: %s",
+			     videoBitrateLogString.c_str(), audioBitrateLogString.c_str());
+
+			obs_data_set_int(videoSettings, "bitrate", videoBitrate);
+			obs_data_set_int(audioSettings, "bitrate", audioBitrate);
+		}
+
+		video_t *video = obs_get_video();
+		enum video_format format = video_output_get_format(video);
+
+		switch (format) {
+		case VIDEO_FORMAT_I420:
+		case VIDEO_FORMAT_NV12:
+		case VIDEO_FORMAT_I010:
+		case VIDEO_FORMAT_P010:
+			break;
+		default:
+			obs_encoder_set_preferred_video_format(enc, VIDEO_FORMAT_NV12);
+		}
+
+		obs_encoder_update(enc, videoSettings);
 	}
 
-	video_t *video = obs_get_video();
-	enum video_format format = video_output_get_format(video);
-
-	switch (format) {
-	case VIDEO_FORMAT_I420:
-	case VIDEO_FORMAT_NV12:
-	case VIDEO_FORMAT_I010:
-	case VIDEO_FORMAT_P010:
-		break;
-	default:
-		obs_encoder_set_preferred_video_format(videoStreaming, VIDEO_FORMAT_NV12);
-	}
-
-	obs_encoder_update(videoStreaming, videoSettings);
 	obs_encoder_update(audioStreaming, audioSettings);
 	obs_encoder_update(audioArchive, audioSettings);
 }
@@ -546,12 +592,55 @@ void SimpleOutput::UpdateRecordingSettings()
 	UpdateRecordingAudioSettings();
 }
 
+void SimpleOutput::fovAddAudioTrack(obs_source_t *source)
+{
+	(void)source;
+}
+
+void SimpleOutput::fovAddVidTrack(obs_source_t *source)
+{
+	if (videoTracks >= MAX_VIDEO_TRACKS)
+		return;
+	std::string encoderName = "FOV video track " + std::string(obs_source_get_name(source));
+	struct obs_video_info ovi{0};
+
+	obs_get_video_info(&ovi);
+	ovi.output_width = OUT_ALIGN(obs_source_get_width(source), 16);
+	ovi.output_height = OUT_ALIGN(obs_source_get_height(source), 16);
+	ovi.base_width = OUT_ALIGN(obs_source_get_base_width(source), 16);
+	ovi.base_height = OUT_ALIGN(obs_source_get_base_height(source), 16);
+	ovi.colorspace = VIDEO_CS_DEFAULT;
+	ovi.range = VIDEO_RANGE_DEFAULT;
+	ovi.fps_den = 1;
+
+	if (views[videoTracks] != nullptr) {
+		obs_view_destroy(views[videoTracks]);
+	}
+	views[videoTracks] = obs_view_create();
+	videoContext = obs_view_add2(views[videoTracks], &ovi);
+	obs_view_set_source(views[videoTracks], 0, obs_source_get_ref(source));
+	obs_encoder_set_video(videoStreaming[videoTracks].Get(), videoContext);
+	videoTracks++;
+
+	if (service != nullptr) {
+		OBSDataAutoRelease data;
+		obs_data_set_int(data, "video_encoder_count", videoTracks);
+		obs_service_update(service, data);
+		blog(LOG_ERROR, "Update du service avec %zu track", videoTracks);
+	}
+}
+
 inline void SimpleOutput::SetupOutputs()
 {
 	SimpleOutput::Update();
-	obs_encoder_set_video(videoStreaming, obs_get_video());
+
 	obs_encoder_set_audio(audioStreaming, obs_get_audio());
+	videoTracks = 1;
+	for (auto const &enc : videoStreaming) {
+		obs_encoder_set_video(enc.Get(), obs_get_video());
+	}
 	obs_encoder_set_audio(audioArchive, obs_get_audio());
+
 	int tracks = config_get_int(main->Config(), "SimpleOutput", "RecTracks");
 	const char *recFormat = config_get_string(main->Config(), "SimpleOutput", "RecFormat2");
 	bool flv = strcmp(recFormat, "flv") == 0;
@@ -588,10 +677,47 @@ std::shared_future<void> SimpleOutput::SetupStreaming(obs_service_t *service, Se
 	/* --------------------- */
 
 	const char *type = GetStreamOutputType(service);
+	this->service = service;
 	if (!type) {
 		continuation(false);
 		return StartMultitrackVideoStreamingGuard::MakeReadyFuture();
 	}
+
+	blog(LOG_ERROR, "FOV charge");
+
+	if (strcmp(type, "fov_output") == 0) {
+		isFOV = true;
+		blog(LOG_ERROR, "This is FOV");
+	} else {
+		isFOV = false;
+		blog(LOG_ERROR, "This is not FOV");
+	}
+
+		if (isFOV) {
+		videoTracks = 0;
+		auto add_source_proc = [](void *data, obs_source_t *source) {
+			auto *system = static_cast<SimpleOutput *>(data);
+			uint32_t sourceFlags = obs_source_get_output_flags(source);
+			blog(LOG_DEBUG, "truc");
+			if (sourceFlags & OBS_SOURCE_VIDEO) {
+				system->fovAddVidTrack(source);
+			} else if (sourceFlags & OBS_SOURCE_AUDIO) {
+				system->fovAddAudioTrack(source);
+			}
+			return true;
+		};
+		obs_enum_sources(add_source_proc, this);
+
+	} else {
+		videoTracks = 1;
+		obs_encoder_set_video(videoStreaming[0].Get(), obs_get_video());
+		obs_encoder_set_audio(audioStreaming, obs_get_audio());
+	}
+
+	OBSDataAutoRelease serviceSettings = obs_service_get_settings(service);
+	obs_data_set_int(serviceSettings, "video_encoder_count", videoTracks);
+	obs_service_update(service, serviceSettings);
+	obs_service_apply_encoder_settings(service, nullptr, nullptr);
 
 	auto audio_bitrate = GetAudioBitrate();
 	auto vod_track_mixer = IsVodTrackEnabled(service) ? std::optional{1} : std::nullopt;
@@ -629,7 +755,11 @@ std::shared_future<void> SimpleOutput::SetupStreaming(obs_service_t *service, Se
 			outputType = type;
 		}
 
-		obs_output_set_video_encoder(streamOutput, videoStreaming);
+		size_t i = 0;
+		for (auto const &enc : videoStreaming) {
+			obs_output_set_video_encoder2(streamOutput, enc, i);
+			i++;
+		}
 		obs_output_set_audio_encoder(streamOutput, audioStreaming, 0);
 		obs_output_set_service(streamOutput, service);
 		return true;
@@ -709,6 +839,33 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 
 	if (!multitrackVideo || !multitrackVideoActive)
 		SetupVodTrack(service);
+
+	// if (isFOV) {
+	// 	videoTracks = 0;
+	// 	auto add_source_proc = [](void *data, obs_source_t *source) {
+	// 		auto *system = static_cast<SimpleOutput *>(data);
+	// 		uint32_t sourceFlags = obs_source_get_output_flags(source);
+	// 		blog(LOG_DEBUG, "truc");
+	// 		if (sourceFlags & OBS_SOURCE_VIDEO) {
+	// 			system->fovAddVidTrack(source);
+	// 		} else if (sourceFlags & OBS_SOURCE_AUDIO) {
+	// 			system->fovAddAudioTrack(source);
+	// 		}
+	// 		return true;
+	// 	};
+	// 	obs_enum_sources(add_source_proc, this);
+
+	// } else {
+	// 	videoTracks = 1;
+	// 	obs_encoder_set_video(videoStreaming[0].Get(), obs_get_video());
+	// 	obs_encoder_set_audio(audioStreaming, obs_get_audio());
+	// }
+
+	// OBSDataAutoRelease data;
+	// obs_data_set_int(data, "video_encoder_count", videoTracks);
+	// obs_service_update(service, data);
+
+	blog(LOG_ERROR, "Update du service avec %zu track", videoTracks);
 
 	if (obs_output_start(streamOutput)) {
 		if (multitrackVideo && multitrackVideoActive)
