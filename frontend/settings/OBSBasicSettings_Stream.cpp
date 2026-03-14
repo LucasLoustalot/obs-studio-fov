@@ -323,6 +323,7 @@ void OBSBasicSettings::SaveStream1Settings()
 		obs_data_set_string(settings, "bearer_token", QT_TO_UTF8(ui->key->text()));
 	} else if (fov) {
 		obs_data_set_string(settings, "service", QT_TO_UTF8(ui->service->currentText()));
+		obs_data_set_string(settings, "key", QT_TO_UTF8(ui->key->text()));
 	} else {
 		obs_data_set_string(settings, "key", QT_TO_UTF8(ui->key->text()));
 	}
