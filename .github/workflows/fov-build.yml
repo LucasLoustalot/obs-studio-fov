@@ -29,3 +29,15 @@ jobs:
 
       - name: Build
         run: ./.github/scripts/FOV/build_windows.ps1
+
+  check_program_compilation_macos:
+    name: FOV - Build on macOS
+    runs-on: macos-latest
+
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: ./.github/scripts/FOV/build_macos.sh
