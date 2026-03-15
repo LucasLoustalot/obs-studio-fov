@@ -136,13 +136,16 @@ void FOVService::deactivate(void) noexcept
 
 	// Making post request to backend
 	const std::string APIRoute = backendURL + API_FFMPEG_STOP_ROUTE;
+	nlohmann::json jsonPayload;
+	jsonPayload["streamId"] = streamKey;
 
 	blog(LOG_INFO, "FOV Service making request to backend %s\n", APIRoute.c_str());
 
-	std::thread([APIRoute]() {
+	std::thread([APIRoute, jsonPayload]() {
 		try {
 			SimpleCurlRequest request(APIRoute, SimpleCurlRequest::HTTP_POST);
 			request.setHeaders({"Content-Type: application/json"});
+			request.setRequestPayload(jsonPayload.dump());
 			request.performRequest();
 
 			blog(LOG_INFO, "FOV: Stop request finished background thread: backend [HTTP %d]: %s\n",
