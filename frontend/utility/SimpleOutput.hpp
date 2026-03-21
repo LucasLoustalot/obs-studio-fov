@@ -2,13 +2,16 @@
 
 #include "BasicOutputHandler.hpp"
 #include "obs.h"
+#include "obs.hpp"
+#include <vector>
 
 #define MAX_VIDEO_TRACKS 10
 #define OUT_ALIGN(x, a) (((x)+(a)-1)&~((a)-1))
 
 struct SimpleOutput : BasicOutputHandler {
 	OBSEncoder audioStreaming;
-	OBSEncoder videoStreaming[MAX_VIDEO_TRACKS];
+	std::vector<OBSEncoder> videoStreaming;
+	// OBSEncoder videoStreaming[MAX_VIDEO_TRACKS];
 	OBSEncoder audioRecording;
 	OBSEncoder audioArchive;
 	OBSEncoder videoRecording;
@@ -23,11 +26,12 @@ struct SimpleOutput : BasicOutputHandler {
 
 	bool isFOV = false;
 	OBSEncoderGroup encoderGroup;
-	size_t videoTracks = 1;
 	obs_service_t *service = nullptr;
 	obs_view_t *views[MAX_VIDEO_TRACKS] {0};
 	void fovAddVidTrack(obs_source_t *source);
 	void fovAddAudioTrack(obs_source_t *source);
+	void initVideoEncoders(size_t nb);
+	OBSEncoder &addVideoEncoder();
 	video_t *videoContext;
 
 	SimpleOutput(OBSBasic *main_);
