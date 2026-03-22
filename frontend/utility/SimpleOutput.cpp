@@ -251,6 +251,29 @@ SimpleOutput::SimpleOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 	recordStopping.Connect(obs_output_get_signal_handler(fileOutput), "stopping", OBSRecordStopping, this);
 }
 
+void SimpleOutput::clearAllFOV()
+{
+	videoStreaming.clear();
+	views.clear();
+}
+
+SimpleOutput::~SimpleOutput()
+{
+	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
+		if (audioTrack[i]) {
+			obs_encoder_set_audio(audioTrack[i], nullptr);
+			audioTrack[i] = nullptr;
+		}
+	}
+
+	clearAllFOV();
+
+	if (audioStreaming)
+		obs_encoder_set_audio(audioStreaming, nullptr);
+	if (audioRecording)
+		obs_encoder_set_audio(audioRecording, nullptr);
+}
+
 int SimpleOutput::GetAudioBitrate() const
 {
 	const char *audio_encoder = config_get_string(main->Config(), "SimpleOutput", "StreamAudioEncoder");
@@ -276,7 +299,7 @@ OBSEncoder &SimpleOutput::addVideoEncoder()
 
 void SimpleOutput::initVideoEncoders(size_t nbEncoders)
 {
-	videoStreaming.clear();
+	clearAllFOV();
 	for (size_t i = 0; i < nbEncoders; i++) {
 		auto ref = addVideoEncoder();
 		obs_encoder_set_video(ref, obs_get_video());
@@ -613,13 +636,14 @@ void SimpleOutput::fovAddVidTrack(obs_source_t *source)
 	ovi.range = VIDEO_RANGE_DEFAULT;
 	ovi.fps_den = 1;
 
-	if (views[encid] != nullptr) {
-		obs_view_destroy(views[encid]);
-	}
-	views[encid] = obs_view_create();
-	videoContext = obs_view_add2(views[encid], &ovi);
-	obs_view_set_source(views[encid], 0, obs_source_get_ref(source));
-	obs_encoder_set_video(videoStreaming[encid], videoContext);
+
+	views.resize(views.size() + 1);
+	size_t viewid = views.size() - 1;
+
+	views[viewid] = obs_view_create();
+	videoContext = obs_view_add2(views[viewid], &ovi);
+	obs_view_set_source(views[viewid], 0, obs_source_get_ref(source));
+	obs_encoder_set_video(videoStreaming[viewid], videoContext);
 
 	if (service != nullptr) {
 		OBSDataAutoRelease data;
@@ -635,7 +659,7 @@ inline void SimpleOutput::SetupOutputs()
 	obs_encoder_set_audio(audioArchive, obs_get_audio());
 
 	if (isFOV) {
-		videoEncoder.clear();
+		clearAllFOV();
 		auto add_source_proc = [](void *data, obs_source_t *source) {
 			auto *system = static_cast<SimpleOutput *>(data);
 			uint32_t sourceFlags = obs_source_get_output_flags(source);
@@ -835,8 +859,6 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 	if (!multitrackVideo || !multitrackVideoActive)
 		SetupVodTrack(service);
 
-	// blog(LOG_ERROR, "Update2 du service avec %zu track", videoStreaming.size());
-
 	if (obs_output_start(streamOutput)) {
 		if (multitrackVideo && multitrackVideoActive)
 			multitrackVideo->StartedStreaming();
@@ -1011,8 +1033,6 @@ void SimpleOutput::StopStreaming(bool force)
 		multitrackVideo->StopStreaming();
 	else
 		obs_output_stop(output);
-
-	videoStreaming.clear();
 }
 
 void SimpleOutput::StopRecording(bool force)
