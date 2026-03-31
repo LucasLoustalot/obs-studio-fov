@@ -18,11 +18,11 @@ jobs:
       - name: Build
         run: ./.github/scripts/FOV/build_linux.sh
 
-#      - name: Upload Linux Artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: obs-fov-linux
-#          path: build/bin/
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: obs-fov-linux
+          path: build/rundir/
 
   check_program_compilation_windows:
     name: FOV - Build on Windows
