@@ -3,7 +3,8 @@ target_compile_definitions(
   obs-studio
   PRIVATE OBS_INSTALL_PREFIX="${OBS_INSTALL_PREFIX}" $<$<BOOL:${ENABLE_PORTABLE_CONFIG}>:ENABLE_PORTABLE_CONFIG>
 )
-target_link_libraries(obs-studio PRIVATE Qt::GuiPrivate Qt::DBus)
+find_package(Qt6 REQUIRED COMPONENTS GuiPrivate)
+target_link_libraries(obs-studio PRIVATE Qt6::GuiPrivate Qt::DBus)
 
 find_package(Libpci REQUIRED)
 target_link_libraries(obs-studio PRIVATE Libpci::pci)
