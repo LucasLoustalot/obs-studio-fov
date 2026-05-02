@@ -1034,6 +1034,7 @@ void SimpleOutput::StopStreaming(bool force)
 		multitrackVideo->StopStreaming();
 	else
 		obs_output_stop(output);
+	clearAllFOV();
 }
 
 void SimpleOutput::StopRecording(bool force)
