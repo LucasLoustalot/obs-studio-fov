@@ -115,7 +115,7 @@ struct ffmpeg_output {
 	os_event_t *stop_event;
 
 	DARRAY(AVPacket *) packets;
-#ifdef NEW_MPEGTS_OUTPUT
+//#ifdef NEW_MPEGTS_OUTPUT
 	/* used for SRT & RIST */
 	URLContext *h;
 	AVIOContext *s;
@@ -127,7 +127,7 @@ struct ffmpeg_output {
 	pthread_mutex_t start_stop_mutex;
 	volatile bool start_stop_thread_active;
 	bool has_connected;
-#endif
+//#endif
 };
 
 #ifdef NEW_MPEGTS_OUTPUT

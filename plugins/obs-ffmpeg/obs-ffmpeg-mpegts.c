@@ -559,10 +559,10 @@ static void close_video(struct ffmpeg_data *data)
 		avcodec_free_context(&data->video_ctx[i]);
 	}
 	// MAYBE ????
-	bfree(data->video_ctx);
-	data->video_ctx = NULL;
-	bfree(data->video);
-	data->video = NULL;
+	//bfree(data->video_ctx);
+	//data->video_ctx = NULL;
+	//bfree(data->video);
+	//data->video = NULL;
 }
 
 static void close_audio(struct ffmpeg_data *data)
@@ -1133,6 +1133,7 @@ static void ffmpeg_mpegts_full_stop(void *data)
 	struct ffmpeg_output *stream = data;
 
 	if (active(stream)) {
+		obs_output_end_data_capture(stream->output);
 		ffmpeg_mpegts_deactivate(stream);
 	}
 	ffmpeg_mpegts_data_free(stream, &stream->ff_data);

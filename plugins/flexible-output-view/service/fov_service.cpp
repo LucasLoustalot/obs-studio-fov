@@ -55,7 +55,7 @@ obs_properties_t *FOVService::getProperties(void) noexcept
 
 	obs_properties_add_text(ppts, "server", "URL", OBS_TEXT_DEFAULT);
 	obs_properties_add_text(ppts, "key", "Stream Key", OBS_TEXT_DEFAULT);
-	obs_properties_add_text(ppts, "srt_endpoint", "SRT url for the obs output", OBS_TEXT_DEFAULT);
+	obs_properties_add_int(ppts, "nbVideoTracks", "Number of video tracks", 1, 6, 1);
 
 	return ppts;
 }
