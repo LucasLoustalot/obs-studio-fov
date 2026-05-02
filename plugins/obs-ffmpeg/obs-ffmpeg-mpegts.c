@@ -558,11 +558,6 @@ static void close_video(struct ffmpeg_data *data)
 	for (uint8_t i = 0; i < data->num_video_tracks; i++) {
 		avcodec_free_context(&data->video_ctx[i]);
 	}
-	// MAYBE ????
-	//bfree(data->video_ctx);
-	//data->video_ctx = NULL;
-	//bfree(data->video);
-	//data->video = NULL;
 }
 
 static void close_audio(struct ffmpeg_data *data)
@@ -635,6 +630,9 @@ void ffmpeg_mpegts_data_free(struct ffmpeg_output *stream, struct ffmpeg_data *d
 			avio_close(data->output->pb);
 		}
 		avformat_free_context(data->output);
+		free(data->video_ctx);
+		free(data->video);
+		data->video_ctx = NULL;
 		data->video = NULL;
 		data->audio_infos = NULL;
 		data->output = NULL;
