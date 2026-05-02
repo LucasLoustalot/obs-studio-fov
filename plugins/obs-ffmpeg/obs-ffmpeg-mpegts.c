@@ -17,7 +17,6 @@
 
 #include <libavutil/error.h>
 #include <obs-module.h>
-#include <unistd.h>
 #include <util/deque.h>
 #include <util/threading.h>
 #include <util/dstr.h>
