@@ -39,7 +39,6 @@ target_sources(
     obs-ffmpeg-source.c
     obs-ffmpeg-video-encoders.c
     obs-ffmpeg.c
-    fov_output.c
 )
 
 target_compile_options(obs-ffmpeg PRIVATE $<$<COMPILE_LANG_AND_ID:C,AppleClang,Clang>:-Wno-shorten-64-to-32>)

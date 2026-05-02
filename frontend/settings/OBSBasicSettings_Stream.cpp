@@ -493,7 +493,7 @@ void OBSBasicSettings::LoadServices(bool showAll)
 	if (obs_is_output_protocol_registered("WHIP")) {
 		ui->service->addItem(QTStr("WHIP"), QVariant((int)ListOpt::WHIP));
 	}
-	if (obs_output_get_display_name("fov_output") != nullptr) {
+	if (obs_output_get_display_name("ffmpeg_mpegts_muxer") != nullptr) {
 		ui->service->addItem(QString("FOV - Multitrack"), QVariant((int)ListOpt::FOV));
 	}
 	if (!showAll) {

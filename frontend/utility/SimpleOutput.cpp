@@ -708,13 +708,14 @@ std::shared_future<void> SimpleOutput::SetupStreaming(obs_service_t *service, Se
 	const char *type = GetStreamOutputType(service);
 	blog(LOG_ERROR, "FOV charge");
 
-	if (strcmp(type, "fov_output") == 0) {
+/* 	if (strcmp(type, "fov_output") == 0) {
 		isFOV = true;
 		blog(LOG_ERROR, "This is FOV");
 	} else {
 		isFOV = false;
 		blog(LOG_ERROR, "This is not FOV");
-	}
+	} */
+	isFOV = true; // TODO: figure out a way to get a bool from the UI here
 
 	if (!Active())
 		SetupOutputs();

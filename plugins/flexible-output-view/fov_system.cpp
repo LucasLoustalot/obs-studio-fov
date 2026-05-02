@@ -76,7 +76,7 @@ void FOVSystem::init()
 		return;
 	}
 
-	fovOutput.reset(obs_output_create("fov_output", "FOV multitrack stream output", nullptr, nullptr));
+	fovOutput.reset(obs_output_create("ffmpeg_mpegts_muxer", "FOV multitrack stream output", nullptr, nullptr));
 	if (!fovOutput) {
 		throw std::runtime_error("FOVSystem: Failed to allocate output");
 	}
@@ -180,7 +180,7 @@ void FOVSystem::start()
 	//	throw std::runtime_error("FOVSystem: the URL was not set for FOVSystem !");
 	//}
 
-	// Set fov_output settings
+	// Set ffmpeg_mpegts_muxer settings
 	OBSDataPtr outputSettings(obs_data_create());
 	if (!outputSettings) {
 		throw std::runtime_error("FOVSystem: cannot allocate output settings !");

@@ -1,7 +1,7 @@
 /**
  * @file fov_service.cpp
  * @author The FOV Team
- * @brief FOV custom service implementation, this service is used together with fov_output
+ * @brief FOV custom service implementation, this service is used together with ffmpeg_mpegts_muxer
  * @version 0.1
  * @date 2026-02-07
  */
@@ -166,7 +166,7 @@ void registerFOVService(void)
 
 	info.id = "fov_service";
 	info.get_output_type = [](void *) -> const char * {
-		return "fov_output";
+		return "ffmpeg_mpegts_muxer";
 	};
 	info.get_name = [](void *priv_data) -> const char * {
 		return static_cast<FOVService *>(priv_data)->getName();

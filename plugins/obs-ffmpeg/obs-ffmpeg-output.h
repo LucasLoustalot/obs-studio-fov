@@ -58,8 +58,9 @@ struct ffmpeg_audio_info {
 };
 
 struct ffmpeg_data {
-	AVStream *video;
-	AVCodecContext *video_ctx;
+	AVStream **video;
+	AVCodecContext **video_ctx;
+	int num_video_tracks;
 	struct ffmpeg_audio_info *audio_infos;
 	const AVCodec *acodec;
 	const AVCodec *vcodec;
