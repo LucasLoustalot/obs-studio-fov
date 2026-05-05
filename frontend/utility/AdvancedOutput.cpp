@@ -247,6 +247,8 @@ void AdvancedOutput::UpdateStreamSettings()
 	}
 
 	obs_encoder_update(videoStreaming, settings);
+
+	if (checkIsFOV(main->GetService()))	fov.updateEncoderSettings(settings);
 }
 
 inline void AdvancedOutput::UpdateRecordingSettings()

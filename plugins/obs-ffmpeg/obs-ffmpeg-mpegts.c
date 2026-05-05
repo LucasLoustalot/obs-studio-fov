@@ -911,6 +911,11 @@ static bool fetch_service_info(struct ffmpeg_output *stream, struct ffmpeg_cfg *
 		return false;
 	}
 	config->url = obs_service_get_connect_info(service, OBS_SERVICE_CONNECT_INFO_SERVER_URL);
+	if (config->url == NULL) {
+		blog(LOG_ERROR, "Misconfigured service, missing the SRT or RIST url !");
+		*code = OBS_OUTPUT_ERROR;
+		return false;
+	}
 	config->username = obs_service_get_connect_info(service, OBS_SERVICE_CONNECT_INFO_USERNAME);
 	config->password = obs_service_get_connect_info(service, OBS_SERVICE_CONNECT_INFO_PASSWORD);
 	config->stream_id = obs_service_get_connect_info(service, OBS_SERVICE_CONNECT_INFO_STREAM_ID);
@@ -1396,7 +1401,7 @@ static void ffmpeg_mpegts_data(void *data, struct encoder_packet *packet)
 	int code;
 	if (!stream->got_headers) {
 		if (get_extradata(stream)) {
-			if (packet->keyframe) // TODO: maybe this check is not required
+			if (packet->keyframe)
 				stream->got_headers = true;
 		} else {
 			warn("Failed to retrieve headers");

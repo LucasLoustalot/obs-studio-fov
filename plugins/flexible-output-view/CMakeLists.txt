@@ -6,7 +6,6 @@ add_library(OBS::flexible-output-view ALIAS flexible-output-view)
 
 target_sources(flexible-output-view PRIVATE
     fov.cpp
-    fov_system.cpp
     service/fov_service.cpp
     service/curl_wrapper.cpp
 )

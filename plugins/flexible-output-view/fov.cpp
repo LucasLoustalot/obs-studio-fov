@@ -22,7 +22,6 @@ MODULE_EXPORT const char *obs_module_description(void)
 
 bool obs_module_load(void)
 {
-	debug("FOV Module Loading...");
 	registerFOVService();
 
 	return true;
@@ -30,7 +29,7 @@ bool obs_module_load(void)
 
 void obs_module_unload(void)
 {
-	debug("FOV Module Unloaded");
+	return;
 }
 
 }

@@ -1,17 +1,10 @@
 #pragma once
 
 #include "BasicOutputHandler.hpp"
-#include "obs.h"
-#include "obs.hpp"
-#include <deque>
-#include <vector>
-
-#define MAX_VIDEO_TRACKS 10
-#define OUT_ALIGN(x, a) (((x)+(a)-1)&~((a)-1))
 
 struct SimpleOutput : BasicOutputHandler {
 	OBSEncoder audioStreaming;
-	std::deque<OBSEncoder> videoStreaming;
+	OBSEncoder videoStreaming;
 	OBSEncoder audioRecording;
 	OBSEncoder audioArchive;
 	OBSEncoder videoRecording;
@@ -23,19 +16,6 @@ struct SimpleOutput : BasicOutputHandler {
 	bool recordingConfigured = false;
 	bool ffmpegOutput = false;
 	bool lowCPUx264 = false;
-
-	bool isFOV = false;
-	OBSEncoderGroup encoderGroup;
-	obs_service_t *service = nullptr;
-	std::deque<OBSView> views;
-
-	void fovAddVidTrack(obs_source_t *source);
-	void fovAddAudioTrack(obs_source_t *source);
-	void initVideoEncoders(size_t nb);
-	OBSEncoder &addVideoEncoder();
-	video_t *videoContext;
-
-	void clearAllFOV();
 
 	SimpleOutput(OBSBasic *main_);
 	~SimpleOutput();

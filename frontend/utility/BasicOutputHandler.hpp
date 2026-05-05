@@ -4,6 +4,7 @@
 
 #include <obs.hpp>
 #include <util/dstr.hpp>
+#include "FOVSystem.hpp"
 
 #include <future>
 
@@ -26,6 +27,8 @@ struct BasicOutputHandler {
 	bool replayBufferActive = false;
 	bool virtualCamActive = false;
 	OBSBasic *main;
+
+	FOVSystem fov;
 
 	std::unique_ptr<MultitrackVideoOutput> multitrackVideo;
 	bool multitrackVideoActive = false;
@@ -53,6 +56,7 @@ struct BasicOutputHandler {
 	OBSSignal stopReplayBuffer;
 	OBSSignal startStreaming;
 	OBSSignal stopStreaming;
+	OBSSignal deactivateStreaming;
 	OBSSignal startVirtualCam;
 	OBSSignal stopVirtualCam;
 	OBSSignal deactivateVirtualCam;
