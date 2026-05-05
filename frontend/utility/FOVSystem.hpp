@@ -26,7 +26,6 @@
 class FOVSystem {
 
 public:
-    std::string encoderID = "obs_x264";
 
 	explicit FOVSystem();
 	FOVSystem(FOVSystem &) = delete;
@@ -43,7 +42,7 @@ public:
 
     void initSystem(obs_encoder_t *audioEncoder, obs_output_t *ffmpegMpegtsMuxerOutput, obs_data_t *encoderSettings = nullptr);
 
-    void updateEncoderSettings(obs_data_t *encoderSettings);
+    void updateEncoderSettings(obs_data_t *encoderSettings, const std::string &encoderID = "obs_x264");
     void syncSources();
 
 protected:
@@ -64,10 +63,12 @@ protected:
         void updateEncoderSettings(obs_data_t *videoSettings);
         bool setSource(obs_source_t *source);
         bool refreshVideoSettings();
+		bool changeEncoderType(const std::string &encoderID);
 	};
 
 private:
 	bool isInit = false;
+	std::string encoderID = "obs_x264";
 
 	obs_encoder_t *audioEncoder = nullptr;
 	obs_output_t *ffmpegMpegtsMuxerOutput = nullptr;

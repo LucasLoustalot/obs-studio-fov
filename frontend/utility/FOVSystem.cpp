@@ -67,6 +67,38 @@ bool FOVSystem::VideoTrack::refreshVideoSettings()
     return true;
 }
 
+bool FOVSystem::VideoTrack::changeEncoderType(const std::string &encoderID)
+{
+    if (this->encoderID == encoderID) return false;
+
+    if (encoder) {
+        obs_encoder_set_video(encoder, nullptr);
+    }
+
+    std::string encoderName = obs_encoder_get_name(encoder);
+    this->encoderID = encoderID;
+
+    obs_encoder_release(encoder);
+
+    encoder = obs_video_encoder_create(this->encoderID.c_str(),
+                                       encoderName.c_str(),
+                                       encoderSettings,
+                                       nullptr);
+
+    if (!encoder) {
+        blog(LOG_ERROR, "FOV: Failed to create new encoder of type %s", encoderID.c_str());
+        return false;
+    }
+
+    if (videoContext) {
+        obs_encoder_set_video(encoder, videoContext);
+    }
+
+    blog(LOG_INFO, "FOV: Changed encoder type to %s for track %s", encoderID.c_str(), encoderName.c_str());
+
+    return true;
+}
+
 bool FOVSystem::VideoTrack::setSource(obs_source_t *rawSource)
 {
 	if (!rawSource) {
@@ -176,11 +208,23 @@ void FOVSystem::clearSources()
 	updateServiceTracks();
 }
 
-void FOVSystem::updateEncoderSettings(obs_data_t *encoderSettings)
+void FOVSystem::updateEncoderSettings(obs_data_t *encoderSettings, const std::string &encoderID)
 {
 	if (encoderSettings == nullptr) {
 		return;
 	}
+
+	obs_data_apply(this->videoSettings, encoderSettings);
+	for (auto &i : videoTracks)
+	{
+		if (encoderID != this->encoderID) {
+			i.get()->changeEncoderType(encoderID);
+		}
+		i.get()->updateEncoderSettings(encoderSettings);
+		i.get()->refreshVideoSettings();
+	}
+	this->encoderID = encoderID;
+
 	if (ffmpegMpegtsMuxerOutput) {
 		auto service = obs_output_get_service(ffmpegMpegtsMuxerOutput);
 		if (service) {
@@ -188,12 +232,6 @@ void FOVSystem::updateEncoderSettings(obs_data_t *encoderSettings)
 		}
 	}
 
-	obs_data_apply(this->videoSettings, encoderSettings);
-	for (auto &i : videoTracks)
-	{
-		i.get()->updateEncoderSettings(encoderSettings);
-		i.get()->refreshVideoSettings();
-	}
 	updateEncoderGroup();
 }
 

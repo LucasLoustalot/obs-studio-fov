@@ -357,7 +357,7 @@ void SimpleOutput::Update()
 	obs_encoder_update(audioStreaming, audioSettings);
 	obs_encoder_update(audioArchive, audioSettings);
 
-	fov.updateEncoderSettings(videoSettings);
+	fov.updateEncoderSettings(videoSettings, encoder_id);
 }
 
 void SimpleOutput::UpdateRecordingAudioSettings()
