@@ -33,9 +33,6 @@ public:
 
 	~FOVSystem();
 
-	void setBackendURL(const std::string &backendURL);
-	void setStreamKey(const std::string &key);
-
 	void addSource(obs_source_t *source);
     bool removeSource(obs_source_t *source);
     void clearSources();

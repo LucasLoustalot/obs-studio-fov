@@ -17,6 +17,7 @@ struct AdvancedOutput : BasicOutputHandler {
 	bool usesBitrate = false;
 
 	AdvancedOutput(OBSBasic *main_);
+	~AdvancedOutput();
 
 	inline void UpdateStreamSettings();
 	inline void UpdateRecordingSettings();

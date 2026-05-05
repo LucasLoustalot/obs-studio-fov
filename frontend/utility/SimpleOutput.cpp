@@ -746,7 +746,7 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 
 	if (checkIsFOV(service)) {
         blog(LOG_INFO, "FOV: Output failed to start, clearing video tracks to prevent memory corruption");
-        fov.clearSources(); // Bet: it will crash here
+        fov.clearSources();
     }
 
 	const char *error = obs_output_get_last_error(streamOutput);
