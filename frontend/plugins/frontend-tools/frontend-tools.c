@@ -32,4 +32,3 @@ void obs_module_unload(void)
 	FreeScripts();
 #endif
 }
-

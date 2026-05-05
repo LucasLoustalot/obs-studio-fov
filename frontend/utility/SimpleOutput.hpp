@@ -18,6 +18,7 @@ struct SimpleOutput : BasicOutputHandler {
 	bool lowCPUx264 = false;
 
 	SimpleOutput(OBSBasic *main_);
+	~SimpleOutput();
 
 	int CalcCRF(int crf);
 

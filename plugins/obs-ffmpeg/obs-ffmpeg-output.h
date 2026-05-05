@@ -58,8 +58,9 @@ struct ffmpeg_audio_info {
 };
 
 struct ffmpeg_data {
-	AVStream *video;
-	AVCodecContext *video_ctx;
+	AVStream **video;
+	AVCodecContext **video_ctx;
+	int num_video_tracks;
 	struct ffmpeg_audio_info *audio_infos;
 	const AVCodec *acodec;
 	const AVCodec *vcodec;
@@ -114,7 +115,7 @@ struct ffmpeg_output {
 	os_event_t *stop_event;
 
 	DARRAY(AVPacket *) packets;
-#ifdef NEW_MPEGTS_OUTPUT
+//#ifdef NEW_MPEGTS_OUTPUT
 	/* used for SRT & RIST */
 	URLContext *h;
 	AVIOContext *s;
@@ -126,7 +127,7 @@ struct ffmpeg_output {
 	pthread_mutex_t start_stop_mutex;
 	volatile bool start_stop_thread_active;
 	bool has_connected;
-#endif
+//#endif
 };
 
 #ifdef NEW_MPEGTS_OUTPUT

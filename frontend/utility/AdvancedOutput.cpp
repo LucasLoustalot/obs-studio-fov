@@ -247,6 +247,22 @@ void AdvancedOutput::UpdateStreamSettings()
 	}
 
 	obs_encoder_update(videoStreaming, settings);
+
+	fov.updateEncoderSettings(settings, streamEncoder);
+}
+
+AdvancedOutput::~AdvancedOutput()
+{
+	stopStreaming.Disconnect();
+	if (streamOutput && obs_output_active(streamOutput)) {
+        obs_output_force_stop(streamOutput);
+
+		// This is terrible, but the only way i found to stop a crash just before the exit if the output was not stopped
+        while (obs_output_active(streamOutput)) {
+            os_sleep_ms(10);
+        }
+    }
+    fov.clearSources();
 }
 
 inline void AdvancedOutput::UpdateRecordingSettings()
@@ -726,6 +742,18 @@ bool AdvancedOutput::StartStreaming(obs_service_t *service)
 	if (is_rtmp) {
 		SetupVodTrack(service);
 	}
+
+	if (checkIsFOV(service)) {
+		obs_encoder_t *activeAudioEnc = obs_output_get_audio_encoder(streamOutput, 0);
+
+		if (!activeAudioEnc) {
+			activeAudioEnc = streamAudioEnc;
+		}
+
+		fov.initSystem(activeAudioEnc, streamOutput);
+		fov.syncSources();
+	}
+
 	if (obs_output_start(streamOutput)) {
 		if (multitrackVideo && multitrackVideoActive)
 			multitrackVideo->StartedStreaming();
@@ -741,6 +769,11 @@ bool AdvancedOutput::StartStreaming(obs_service_t *service)
 		lastError = error;
 	else
 		lastError = string();
+
+	if (checkIsFOV(service)) {
+		blog(LOG_INFO, "FOV: Output failed to start, clearing video tracks");
+		fov.clearSources();
+	}
 
 	const char *type = obs_output_get_id(streamOutput);
 	blog(LOG_WARNING, "Stream output type '%s' failed to start!%s%s", type, hasLastError ? "  Last Error: " : "",
