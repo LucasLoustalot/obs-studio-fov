@@ -104,7 +104,7 @@ static bool parse_params(AVCodecContext *context, char **opts)
 
 static bool open_video_codec(struct ffmpeg_data *data)
 {
-	AVCodecContext *const context = data->video_ctx;
+	AVCodecContext *const context = data->video_ctx[0];
 	char **opts = strlist_split(data->config.video_settings, ' ', false);
 	int ret;
 
@@ -146,7 +146,7 @@ static bool open_video_codec(struct ffmpeg_data *data)
 		return false;
 	}
 
-	avcodec_parameters_from_context(data->video->codecpar, context);
+	avcodec_parameters_from_context(data->video[0]->codecpar, context);
 
 	return true;
 }
@@ -177,7 +177,7 @@ static bool create_video_stream(struct ffmpeg_data *data)
 		return false;
 	}
 
-	if (!new_stream(data, &data->video, &data->vcodec, data->output->oformat->video_codec,
+	if (!new_stream(data, &data->video[0], &data->vcodec, data->output->oformat->video_codec,
 			data->config.video_encoder))
 		return false;
 
@@ -210,13 +210,13 @@ static bool create_video_stream(struct ffmpeg_data *data)
 	context->pix_fmt = closest_format;
 	context->chroma_sample_location = determine_chroma_location(closest_format, data->config.colorspace);
 
-	data->video->time_base = context->time_base;
-	data->video->avg_frame_rate = (AVRational){ovi.fps_num, ovi.fps_den};
+	data->video[0]->time_base = context->time_base;
+	data->video[0]->avg_frame_rate = (AVRational){ovi.fps_num, ovi.fps_den};
 
 	if (data->output->oformat->flags & AVFMT_GLOBALHEADER)
 		context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
-	data->video_ctx = context;
+	data->video_ctx[0] = context;
 
 	if (!open_video_codec(data))
 		return false;
@@ -231,8 +231,8 @@ static bool create_video_stream(struct ffmpeg_data *data)
 		AVContentLightMetadata *const content = av_content_light_metadata_alloc(&content_size);
 		content->MaxCLL = hdr_nominal_peak_level;
 		content->MaxFALL = hdr_nominal_peak_level;
-		av_packet_side_data_add(&data->video->codecpar->coded_side_data,
-					&data->video->codecpar->nb_coded_side_data, AV_PKT_DATA_CONTENT_LIGHT_LEVEL,
+		av_packet_side_data_add(&data->video[0]->codecpar->coded_side_data,
+					&data->video[0]->codecpar->nb_coded_side_data, AV_PKT_DATA_CONTENT_LIGHT_LEVEL,
 					(uint8_t *)content, content_size, 0);
 
 		AVMasteringDisplayMetadata *const mastering = av_mastering_display_metadata_alloc();
@@ -248,8 +248,8 @@ static bool create_video_stream(struct ffmpeg_data *data)
 		mastering->max_luminance = av_make_q(hdr_nominal_peak_level, 1);
 		mastering->has_primaries = 1;
 		mastering->has_luminance = 1;
-		av_packet_side_data_add(&data->video->codecpar->coded_side_data,
-					&data->video->codecpar->nb_coded_side_data,
+		av_packet_side_data_add(&data->video[0]->codecpar->coded_side_data,
+					&data->video[0]->codecpar->nb_coded_side_data,
 					AV_PKT_DATA_MASTERING_DISPLAY_METADATA, (uint8_t *)mastering,
 					sizeof(*mastering), 0);
 	}
@@ -365,6 +365,12 @@ static inline bool init_streams(struct ffmpeg_data *data)
 {
 	const AVOutputFormat *format = data->output->oformat;
 
+	data->video = calloc(1, sizeof(AVStream *));
+	data->video_ctx = calloc(1, sizeof(AVCodecContext *));
+	if (data->video == NULL || data->video_ctx == NULL) {
+		ffmpeg_log_error(LOG_ERROR, data, "Failed to allocate memory for video contexts");
+		return false;
+	}
 	if (format->video_codec != AV_CODEC_ID_NONE)
 		if (!create_video_stream(data))
 			return false;
@@ -439,7 +445,7 @@ static inline bool open_output_file(struct ffmpeg_data *data)
 
 static void close_video(struct ffmpeg_data *data)
 {
-	avcodec_free_context(&data->video_ctx);
+	avcodec_free_context(&data->video_ctx[0]);
 	av_frame_unref(data->vframe);
 
 	// This format for some reason derefs video frame
@@ -448,6 +454,10 @@ static void close_video(struct ffmpeg_data *data)
 		return;
 
 	av_frame_free(&data->vframe);
+	bfree(data->video_ctx);
+	data->video_ctx = NULL;
+	bfree(data->video);
+	data->video = NULL;
 }
 
 static void close_audio(struct ffmpeg_data *data)
@@ -652,7 +662,7 @@ static void receive_video(void *param, struct video_data *frame)
 	if (!data->video)
 		return;
 
-	AVCodecContext *context = data->video_ctx;
+	AVCodecContext *context = data->video_ctx[0];
 	AVPacket *packet = NULL;
 	int ret = 0, got_packet;
 
@@ -698,9 +708,9 @@ static void receive_video(void *param, struct video_data *frame)
 	}
 
 	if (!ret && got_packet && packet->size) {
-		packet->pts = rescale_ts(packet->pts, context, data->video->time_base);
-		packet->dts = rescale_ts(packet->dts, context, data->video->time_base);
-		packet->duration = (int)av_rescale_q(packet->duration, context->time_base, data->video->time_base);
+		packet->pts = rescale_ts(packet->pts, context, data->video[0]->time_base);
+		packet->dts = rescale_ts(packet->dts, context, data->video[0]->time_base);
+		packet->duration = (int)av_rescale_q(packet->duration, context->time_base, data->video[0]->time_base);
 
 		pthread_mutex_lock(&output->write_mutex);
 		da_push_back(output->packets, &packet);
@@ -845,8 +855,8 @@ static uint64_t get_packet_sys_dts(struct ffmpeg_output *output, AVPacket *packe
 
 	AVRational time_base;
 
-	if (data->video && data->video->index == packet->stream_index) {
-		time_base = data->video->time_base;
+	if (data->video && data->video[0]->index == packet->stream_index) {
+		time_base = data->video[0]->time_base;
 		start_ts = output->video_start_ts;
 	} else {
 		time_base = data->audio_infos[0].stream->time_base;

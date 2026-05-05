@@ -18,6 +18,12 @@ jobs:
       - name: Build
         run: ./.github/scripts/FOV/build_linux.sh
 
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: obs-fov-linux
+          path: build/rundir/
+
   check_program_compilation_windows:
     name: FOV - Build on Windows
     runs-on: [ self-hosted, windows, x64 ]
@@ -29,6 +35,12 @@ jobs:
 
       - name: Build
         run: ./.github/scripts/FOV/build_windows.ps1
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: obs-fov-windows
+          path: build_x64/rundir
 
   check_program_compilation_macos:
     name: FOV - Build on macOS

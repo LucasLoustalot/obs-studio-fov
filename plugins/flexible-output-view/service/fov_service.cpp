@@ -1,7 +1,7 @@
 /**
  * @file fov_service.cpp
  * @author The FOV Team
- * @brief FOV custom service implementation, this service is used together with fov_output
+ * @brief FOV custom service implementation, this service is used together with ffmpeg_mpegts_muxer
  * @version 0.1
  * @date 2026-02-07
  */
@@ -39,14 +39,14 @@ void FOVService::update(obs_data_t *settings) noexcept
 	backendURL = obs_data_get_string(settings, "server");
 
 	nbtracks = obs_data_get_int(settings, "video_encoder_count");
-	if (nbtracks <= 0) {
+	if (nbtracks <= 0 && nbVideoTracks <= 0) {
 		blog(LOG_WARNING, "FOV Service missing/invalid 'video_encoder_count' property, defaulting to 1");
 		nbtracks = 1;
 	}
 	nbVideoTracks = nbtracks;
 	streamKey = obs_data_get_string(settings, "key");
 
-	blog(LOG_INFO, "FOV Service settings changed\n");
+	blog(LOG_INFO, "FOV Service settings changed: nbVideoTracks:%ld server:%s key:%s\n", nbVideoTracks, backendURL.c_str(), streamKey.c_str());
 }
 
 obs_properties_t *FOVService::getProperties(void) noexcept
@@ -55,7 +55,7 @@ obs_properties_t *FOVService::getProperties(void) noexcept
 
 	obs_properties_add_text(ppts, "server", "URL", OBS_TEXT_DEFAULT);
 	obs_properties_add_text(ppts, "key", "Stream Key", OBS_TEXT_DEFAULT);
-	obs_properties_add_text(ppts, "srt_endpoint", "SRT url for the obs output", OBS_TEXT_DEFAULT);
+	obs_properties_add_int(ppts, "nbVideoTracks", "Number of video tracks", 1, 6, 1);
 
 	return ppts;
 }
@@ -82,7 +82,7 @@ const char *FOVService::getConnectInfo(uint32_t type) noexcept
 const char *FOVService::getURL(void) noexcept
 {
 	if (backendURL.empty() || nbVideoTracks == 0) {
-		blog(LOG_WARNING, "FOV Service: Misconfigured service, check the backend URL or nbVideoTracks");
+		blog(LOG_WARNING, "FOV Service is misconfigured nbVideoTracks:%ld server:%s\n", nbVideoTracks, backendURL.c_str());
 		return nullptr;
 	}
 
@@ -136,13 +136,16 @@ void FOVService::deactivate(void) noexcept
 
 	// Making post request to backend
 	const std::string APIRoute = backendURL + API_FFMPEG_STOP_ROUTE;
+	nlohmann::json jsonPayload;
+	jsonPayload["streamId"] = streamKey;
 
 	blog(LOG_INFO, "FOV Service making request to backend %s\n", APIRoute.c_str());
 
-	std::thread([APIRoute]() {
+	std::thread([APIRoute, jsonPayload]() {
 		try {
 			SimpleCurlRequest request(APIRoute, SimpleCurlRequest::HTTP_POST);
 			request.setHeaders({"Content-Type: application/json"});
+			request.setRequestPayload(jsonPayload.dump());
 			request.performRequest();
 
 			blog(LOG_INFO, "FOV: Stop request finished background thread: backend [HTTP %d]: %s\n",
@@ -163,7 +166,7 @@ void registerFOVService(void)
 
 	info.id = "fov_service";
 	info.get_output_type = [](void *) -> const char * {
-		return "fov_output";
+		return "ffmpeg_mpegts_muxer";
 	};
 	info.get_name = [](void *priv_data) -> const char * {
 		return static_cast<FOVService *>(priv_data)->getName();

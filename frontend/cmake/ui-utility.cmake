@@ -70,4 +70,5 @@ target_sources(
     utility/VCamConfig.hpp
     utility/VolumeMeterTimer.cpp
     utility/VolumeMeterTimer.hpp
+    utility/FOVSystem.cpp
 )

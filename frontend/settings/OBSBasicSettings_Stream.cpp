@@ -1,4 +1,6 @@
 #include "OBSBasicSettings.hpp"
+#include "obs.h"
+#include <qcontainerfwd.h>
 
 #ifdef YOUTUBE_ENABLED
 #include <docks/YouTubeAppDock.hpp>
@@ -30,6 +32,7 @@ enum class ListOpt : int {
 	ShowAll = 1,
 	Custom,
 	WHIP,
+	FOV,
 };
 
 enum class Section : int {
@@ -45,6 +48,11 @@ bool OBSBasicSettings::IsCustomService() const
 inline bool OBSBasicSettings::IsWHIP() const
 {
 	return ui->service->currentData().toInt() == (int)ListOpt::WHIP;
+}
+
+inline bool OBSBasicSettings::IsFOV() const
+{
+	return ui->service->currentData().toInt() == (int)ListOpt::FOV;
 }
 
 void OBSBasicSettings::InitStreamPage()
@@ -101,6 +109,7 @@ void OBSBasicSettings::LoadStream1Settings()
 	bool is_rtmp_custom = (strcmp(type, "rtmp_custom") == 0);
 	bool is_rtmp_common = (strcmp(type, "rtmp_common") == 0);
 	bool is_whip = (strcmp(type, "whip_custom") == 0);
+	bool is_fov = (strcmp(type, "fov_service") == 0);
 
 	loading = true;
 
@@ -113,7 +122,7 @@ void OBSBasicSettings::LoadStream1Settings()
 	protocol = QT_UTF8(obs_service_get_protocol(service_obj));
 	const char *bearer_token = obs_data_get_string(settings, "bearer_token");
 
-	if (is_rtmp_custom || is_whip)
+	if (is_rtmp_custom || is_whip || is_fov)
 		ui->customServer->setText(server);
 
 	if (is_rtmp_custom) {
@@ -127,6 +136,9 @@ void OBSBasicSettings::LoadStream1Settings()
 		ui->authUsername->setText(QT_UTF8(username));
 		ui->authPw->setText(QT_UTF8(password));
 		ui->useAuth->setChecked(use_auth);
+	} else if (is_fov) {
+		int idx = ui->service->findData(QVariant((int)ListOpt::FOV));
+		ui->service->setCurrentIndex(idx);
 	} else {
 		int idx = ui->service->findText(service);
 		if (idx == -1) {
@@ -206,7 +218,7 @@ void OBSBasicSettings::LoadStream1Settings()
 		ui->server->setCurrentIndex(idx);
 	}
 
-	if (use_custom_server)
+	if (use_custom_server || is_fov)
 		ui->serviceCustomServer->setText(server);
 
 	if (is_whip)
@@ -256,12 +268,15 @@ void OBSBasicSettings::SaveStream1Settings()
 {
 	bool customServer = IsCustomService();
 	bool whip = IsWHIP();
+	bool fov = IsFOV();
 	const char *service_id = "rtmp_common";
 
 	if (customServer) {
 		service_id = "rtmp_custom";
 	} else if (whip) {
 		service_id = "whip_custom";
+	} else if (fov) {
+		service_id = "fov_service";
 	}
 
 	obs_service_t *oldService = main->GetService();
@@ -269,7 +284,7 @@ void OBSBasicSettings::SaveStream1Settings()
 
 	OBSDataAutoRelease settings = obs_data_create();
 
-	if (!customServer && !whip) {
+	if (!customServer && !whip && !fov) {
 		obs_data_set_string(settings, "service", QT_TO_UTF8(ui->service->currentText()));
 		obs_data_set_string(settings, "protocol", QT_TO_UTF8(protocol));
 		if (ui->server->currentData() == CustomServerUUID()) {
@@ -306,6 +321,9 @@ void OBSBasicSettings::SaveStream1Settings()
 	if (whip) {
 		obs_data_set_string(settings, "service", "WHIP");
 		obs_data_set_string(settings, "bearer_token", QT_TO_UTF8(ui->key->text()));
+	} else if (fov) {
+		obs_data_set_string(settings, "service", QT_TO_UTF8(ui->service->currentText()));
+		obs_data_set_string(settings, "key", QT_TO_UTF8(ui->key->text()));
 	} else {
 		obs_data_set_string(settings, "key", QT_TO_UTF8(ui->key->text()));
 	}
@@ -363,7 +381,7 @@ void OBSBasicSettings::SaveStream1Settings()
 
 void OBSBasicSettings::UpdateMoreInfoLink()
 {
-	if (IsCustomService() || IsWHIP()) {
+	if (IsCustomService() || IsWHIP() || IsFOV()) {
 		ui->moreInfoButton->hide();
 		return;
 	}
@@ -475,7 +493,9 @@ void OBSBasicSettings::LoadServices(bool showAll)
 	if (obs_is_output_protocol_registered("WHIP")) {
 		ui->service->addItem(QTStr("WHIP"), QVariant((int)ListOpt::WHIP));
 	}
-
+	if (obs_output_get_display_name("ffmpeg_mpegts_muxer") != nullptr) {
+		ui->service->addItem(QString("FOV - Multitrack"), QVariant((int)ListOpt::FOV));
+	}
 	if (!showAll) {
 		ui->service->addItem(QTStr("Basic.AutoConfig.StreamPage.Service.ShowAll"),
 				     QVariant((int)ListOpt::ShowAll));
@@ -609,6 +629,7 @@ void OBSBasicSettings::ServiceChanged(bool resetFields)
 	std::string service = QT_TO_UTF8(ui->service->currentText());
 	bool custom = IsCustomService();
 	bool whip = IsWHIP();
+	bool isFOV = IsFOV();
 
 	ui->disconnectAccount->setVisible(false);
 	ui->bandwidthTestEnable->setVisible(false);
@@ -629,7 +650,7 @@ void OBSBasicSettings::ServiceChanged(bool resetFields)
 	ui->authPwLabel->setVisible(custom);
 	ui->authPwWidget->setVisible(custom);
 
-	if (custom || whip) {
+	if (custom || whip || isFOV) {
 		ui->destinationLayout->insertRow(1, ui->serverLabel, ui->serverStackedWidget);
 
 		ui->serverStackedWidget->setCurrentIndex(1);
@@ -675,6 +696,8 @@ QString OBSBasicSettings::FindProtocol()
 		if (server.startsWith("rist://"))
 			return QString("RIST");
 
+	} else if (IsFOV()) {
+		return QString("SRT");
 	} else {
 		obs_properties_t *props = obs_get_service_properties("rtmp_common");
 		obs_property_t *services = obs_properties_get(props, "service");
@@ -752,12 +775,15 @@ OBSService OBSBasicSettings::SpawnTempService()
 {
 	bool custom = IsCustomService();
 	bool whip = IsWHIP();
+	bool fov = IsFOV();
 	const char *service_id = "rtmp_common";
 
 	if (custom) {
 		service_id = "rtmp_custom";
 	} else if (whip) {
 		service_id = "whip_custom";
+	} else if (fov) {
+		service_id = "fov_service";
 	}
 
 	OBSDataAutoRelease settings = obs_data_create();

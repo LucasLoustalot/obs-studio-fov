@@ -356,6 +356,8 @@ void SimpleOutput::Update()
 	obs_encoder_update(videoStreaming, videoSettings);
 	obs_encoder_update(audioStreaming, audioSettings);
 	obs_encoder_update(audioArchive, audioSettings);
+
+	fov.updateEncoderSettings(videoSettings, encoder_id);
 }
 
 void SimpleOutput::UpdateRecordingAudioSettings()
@@ -665,8 +667,28 @@ void SimpleOutput::SetupVodTrack(obs_service_t *service)
 		clear_archive_encoder(streamOutput, SIMPLE_ARCHIVE_NAME);
 }
 
+SimpleOutput::~SimpleOutput()
+{
+	stopStreaming.Disconnect();
+	if (streamOutput && obs_output_active(streamOutput)) {
+        obs_output_force_stop(streamOutput);
+
+		// This is terrible, but the only way i found to stop a crash just before the exit if the output was not stopped
+        while (obs_output_active(streamOutput)) {
+            os_sleep_ms(10);
+        }
+    }
+    fov.clearSources();
+}
+
 bool SimpleOutput::StartStreaming(obs_service_t *service)
 {
+	if (checkIsFOV(service)) {
+		fov.initSystem(audioStreaming, streamOutput);
+		//fov.encoderID =  config_get_string(main->Config(), "SimpleOutput", "StreamEncoder");
+		fov.syncSources();
+	}
+
 	bool reconnect = config_get_bool(main->Config(), "Output", "Reconnect");
 	int retryDelay = config_get_uint(main->Config(), "Output", "RetryDelay");
 	int maxRetries = config_get_uint(main->Config(), "Output", "MaxRetries");
@@ -708,8 +730,11 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 	obs_output_set_reconnect_settings(streamOutput, maxRetries, retryDelay);
 
 	if (!multitrackVideo || !multitrackVideoActive)
-		SetupVodTrack(service);
+	SetupVodTrack(service);
 
+	if (service && checkIsFOV(service)) {
+		fov.syncSources();
+	}
 	if (obs_output_start(streamOutput)) {
 		if (multitrackVideo && multitrackVideoActive)
 			multitrackVideo->StartedStreaming();
@@ -718,6 +743,11 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 
 	if (multitrackVideo && multitrackVideoActive)
 		multitrackVideoActive = false;
+
+	if (checkIsFOV(service)) {
+        blog(LOG_INFO, "FOV: Output failed to start, clearing video tracks to prevent memory corruption");
+        fov.clearSources();
+    }
 
 	const char *error = obs_output_get_last_error(streamOutput);
 	bool hasLastError = error && *error;
