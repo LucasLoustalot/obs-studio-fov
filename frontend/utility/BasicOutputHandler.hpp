@@ -56,7 +56,6 @@ struct BasicOutputHandler {
 	OBSSignal stopReplayBuffer;
 	OBSSignal startStreaming;
 	OBSSignal stopStreaming;
-	OBSSignal deactivateStreaming;
 	OBSSignal startVirtualCam;
 	OBSSignal stopVirtualCam;
 	OBSSignal deactivateVirtualCam;

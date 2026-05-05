@@ -178,17 +178,17 @@ void FOVSystem::clearSources()
 
 void FOVSystem::updateEncoderSettings(obs_data_t *encoderSettings)
 {
-	if (!isInit) return;
 	if (encoderSettings == nullptr) {
 		return;
 	}
-	auto service = obs_output_get_service(ffmpegMpegtsMuxerOutput);
-	if (service == nullptr) {
-		return;
+	if (ffmpegMpegtsMuxerOutput) {
+		auto service = obs_output_get_service(ffmpegMpegtsMuxerOutput);
+		if (service) {
+			obs_service_apply_encoder_settings(service, this->videoSettings, nullptr);
+		}
 	}
 
 	obs_data_apply(this->videoSettings, encoderSettings);
-	obs_service_apply_encoder_settings(service, this->videoSettings, nullptr);
 	for (auto &i : videoTracks)
 	{
 		i.get()->updateEncoderSettings(encoderSettings);

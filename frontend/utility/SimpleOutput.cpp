@@ -357,9 +357,7 @@ void SimpleOutput::Update()
 	obs_encoder_update(audioStreaming, audioSettings);
 	obs_encoder_update(audioArchive, audioSettings);
 
-	if (checkIsFOV(obs_output_get_service(streamOutput))) {
-		fov.updateEncoderSettings(videoSettings);
-	}
+	fov.updateEncoderSettings(videoSettings);
 }
 
 void SimpleOutput::UpdateRecordingAudioSettings()
@@ -610,7 +608,6 @@ std::shared_future<void> SimpleOutput::SetupStreaming(obs_service_t *service, Se
 			streamStopping.Disconnect();
 			startStreaming.Disconnect();
 			stopStreaming.Disconnect();
-			deactivateStreaming.Disconnect();
 
 			streamOutput = obs_output_create(type, "simple_stream", nullptr, nullptr);
 			if (!streamOutput) {
@@ -675,6 +672,8 @@ SimpleOutput::~SimpleOutput()
 	stopStreaming.Disconnect();
 	if (streamOutput && obs_output_active(streamOutput)) {
         obs_output_force_stop(streamOutput);
+
+		// This is terrible, but the only way i found to stop a crash just before the exit if the output was not stopped
         while (obs_output_active(streamOutput)) {
             os_sleep_ms(10);
         }
