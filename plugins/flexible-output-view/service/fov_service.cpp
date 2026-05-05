@@ -46,7 +46,7 @@ void FOVService::update(obs_data_t *settings) noexcept
 	nbVideoTracks = nbtracks;
 	streamKey = obs_data_get_string(settings, "key");
 
-	blog(LOG_INFO, "FOV Service settings changed: nbVideoTracks:%d server:%s key:%s\n", nbVideoTracks, backendURL.c_str(), streamKey.c_str());
+	blog(LOG_INFO, "FOV Service settings changed: nbVideoTracks:%ld server:%s key:%s\n", nbVideoTracks, backendURL.c_str(), streamKey.c_str());
 }
 
 obs_properties_t *FOVService::getProperties(void) noexcept
@@ -82,7 +82,7 @@ const char *FOVService::getConnectInfo(uint32_t type) noexcept
 const char *FOVService::getURL(void) noexcept
 {
 	if (backendURL.empty() || nbVideoTracks == 0) {
-		blog(LOG_WARNING, "FOV Service is misconfigured nbVideoTracks:%d server:%s\n", nbVideoTracks, backendURL.c_str());
+		blog(LOG_WARNING, "FOV Service is misconfigured nbVideoTracks:%ld server:%s\n", nbVideoTracks, backendURL.c_str());
 		return nullptr;
 	}
 
