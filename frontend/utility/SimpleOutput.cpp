@@ -357,7 +357,8 @@ void SimpleOutput::Update()
 	obs_encoder_update(audioStreaming, audioSettings);
 	obs_encoder_update(audioArchive, audioSettings);
 
-	fov.updateEncoderSettings(videoSettings, encoder_id);
+	fov.updateVideoEncoderSettings(videoSettings, encoder_id);
+	fov.updateAudioEncoderSettings(audioSettings);
 }
 
 void SimpleOutput::UpdateRecordingAudioSettings()
@@ -684,8 +685,7 @@ SimpleOutput::~SimpleOutput()
 bool SimpleOutput::StartStreaming(obs_service_t *service)
 {
 	if (checkIsFOV(service)) {
-		fov.initSystem(audioStreaming, streamOutput);
-		//fov.encoderID =  config_get_string(main->Config(), "SimpleOutput", "StreamEncoder");
+		fov.initSystem(streamOutput);
 		fov.syncSources();
 	}
 
