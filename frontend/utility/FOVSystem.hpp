@@ -75,8 +75,6 @@ private:
 	OBSEncoderGroup encoderGroup;
 	std::deque<std::unique_ptr<VideoTrack>> videoTracks;
 
-	//OBSSignal deactivateSignal;
-
     void updateServiceTracks();
     void updateEncoderGroup();
 };
