@@ -147,7 +147,6 @@ FOVSystem::VideoTrack::~VideoTrack()
 	}
 }
 
-
 void FOVSystem::AudioTrack::updateEncoderSettings(obs_data_t *videoSettings)
 {
 	obs_data_apply(encoderSettings, videoSettings);
@@ -167,7 +166,8 @@ bool FOVSystem::AudioTrack::refreshAudioSettings()
 		auto mixerMask = obs_source_get_audio_mixers(source);
 		size_t mixerIndex = GetFirstMixerIndex(mixerMask);
 
-		encoder = obs_audio_encoder_create(encoderID.c_str(), encoderName.c_str(), encoderSettings, mixerIndex, nullptr);
+		encoder = obs_audio_encoder_create(encoderID.c_str(), encoderName.c_str(), encoderSettings, mixerIndex,
+						   nullptr);
 	}
 
 	obs_encoder_set_audio(encoder, obs_get_audio());
@@ -192,7 +192,8 @@ bool FOVSystem::AudioTrack::changeEncoderType(const std::string &encoderID)
 	auto mixerMask = obs_source_get_audio_mixers(source);
 	size_t mixerIndex = GetFirstMixerIndex(mixerMask);
 
-	encoder = obs_audio_encoder_create(this->encoderID.c_str(), encoderName.c_str(), encoderSettings, mixerIndex, nullptr);
+	encoder = obs_audio_encoder_create(this->encoderID.c_str(), encoderName.c_str(), encoderSettings, mixerIndex,
+					   nullptr);
 
 	if (!encoder) {
 		blog(LOG_ERROR, "FOV: Failed to create new encoder of type %s", encoderID.c_str());
@@ -444,42 +445,27 @@ void FOVSystem::syncSources()
 {
 	if (!isInit)
 		return;
-	std::set<obs_source_t *> activeOBSSources;
+	clearSources();
 
+	std::set<obs_source_t *> currentObsSources;
 	obs_enum_sources(
 		[](void *data, obs_source_t *source) {
 			auto *set = static_cast<std::set<obs_source_t *> *>(data);
-			uint32_t flag = obs_source_get_output_flags(source);
-			bool active = obs_source_active(source);
-			if ((flag & OBS_SOURCE_VIDEO && active) || (flag & OBS_SOURCE_AUDIO && active && obs_source_get_audio_mixers(source) != 0)) {
-				set->insert(source);
-			}
+			set->insert(source);
 			return true;
 		},
-		&activeOBSSources);
+		&currentObsSources);
 
-	auto vit = videoTracks.begin();
-	while (vit != videoTracks.end()) {
-		if (activeOBSSources.find((*vit)->source) == activeOBSSources.end()) {
-			vit = videoTracks.erase(vit);
-		} else {
-			activeOBSSources.erase((*vit)->source);
-			++vit;
+	std::set<obs_source_t *> validSources;
+	for (auto source : currentObsSources) {
+		uint32_t flags = obs_source_get_output_flags(source);
+		if (flags & OBS_SOURCE_VIDEO || flags & OBS_SOURCE_AUDIO) {
+			validSources.insert(source);
 		}
 	}
 
-	auto ait = audioTracks.begin();
-	while (ait != audioTracks.end()) {
-		if (activeOBSSources.find((*ait)->source) == activeOBSSources.end()) {
-			ait = audioTracks.erase(ait);
-		} else {
-			activeOBSSources.erase((*ait)->source);
-			++ait;
-		}
-	}
-
-	for (obs_source_t *newSource : activeOBSSources) {
-		this->addSource(newSource);
+	for (obs_source_t *source : validSources) {
+		this->addSource(source);
 	}
 
 	updateEncoderGroup();
