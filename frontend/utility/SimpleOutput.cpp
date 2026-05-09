@@ -730,9 +730,10 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 	obs_output_set_reconnect_settings(streamOutput, maxRetries, retryDelay);
 
 	if (!multitrackVideo || !multitrackVideoActive)
-	SetupVodTrack(service);
+		SetupVodTrack(service);
 
 	if (service && checkIsFOV(service)) {
+		obs_output_set_reconnect_settings(streamOutput, 0, 0);
 		fov.syncSources();
 	}
 	if (obs_output_start(streamOutput)) {
