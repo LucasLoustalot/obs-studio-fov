@@ -20,6 +20,7 @@ FOVService::FOVService(obs_data_t *settings, obs_service_t *) noexcept
 	: backendURL(""),
 	  srtURL(""),
 	  nbVideoTracks(1),
+	  nbAudioTracks(1),
 	  started(false)
 {
 	blog(LOG_INFO, "FOV Service created\n");
@@ -35,18 +36,29 @@ const char *FOVService::getName() const noexcept
 
 void FOVService::update(obs_data_t *settings) noexcept
 {
-	size_t nbtracks = 0;
-	backendURL = obs_data_get_string(settings, "server");
+	size_t nbVideoTracks = 0;
+	size_t nbAudioTracks = 0;
 
-	nbtracks = obs_data_get_int(settings, "video_encoder_count");
-	if (nbtracks <= 0 && nbVideoTracks <= 0) {
-		blog(LOG_WARNING, "FOV Service missing/invalid 'video_encoder_count' property, defaulting to 1");
-		nbtracks = 1;
-	}
-	nbVideoTracks = nbtracks;
+	backendURL = obs_data_get_string(settings, "server");
 	streamKey = obs_data_get_string(settings, "key");
 
-	blog(LOG_INFO, "FOV Service settings changed: nbVideoTracks:%ld server:%s key:%s\n", nbVideoTracks, backendURL.c_str(), streamKey.c_str());
+
+	nbVideoTracks = obs_data_get_int(settings, "video_encoder_count");
+	nbAudioTracks = obs_data_get_int(settings, "audio_track_count");
+	if (nbVideoTracks <= 0 ) {
+		blog(LOG_WARNING, "FOV Service invalid 'video_encoder_count' property, defaulting to 1");
+		nbVideoTracks = 1;
+	}
+	if (nbAudioTracks <= 0) {
+		blog(LOG_WARNING, "FOV Service invalid 'audio_track_count' property, defaulting to 1");
+		nbAudioTracks = 1;
+	}
+
+	this->nbVideoTracks = nbVideoTracks;
+	this->nbAudioTracks = nbAudioTracks;
+
+	blog(LOG_INFO, "FOV Service settings changed: nbVideoTracks:%ld nbAudioTracks:%ld server:%s key:%s\n",
+		nbVideoTracks, nbAudioTracks, backendURL.c_str(), streamKey.c_str());
 }
 
 obs_properties_t *FOVService::getProperties(void) noexcept
@@ -56,6 +68,7 @@ obs_properties_t *FOVService::getProperties(void) noexcept
 	obs_properties_add_text(ppts, "server", "URL", OBS_TEXT_DEFAULT);
 	obs_properties_add_text(ppts, "key", "Stream Key", OBS_TEXT_DEFAULT);
 	obs_properties_add_int(ppts, "nbVideoTracks", "Number of video tracks", 1, 6, 1);
+	obs_properties_add_int(ppts, "nbAudioTracks", "Number of audio tracks", 1, 6, 1);
 
 	return ppts;
 }
@@ -82,7 +95,8 @@ const char *FOVService::getConnectInfo(uint32_t type) noexcept
 const char *FOVService::getURL(void) noexcept
 {
 	if (backendURL.empty() || nbVideoTracks == 0) {
-		blog(LOG_WARNING, "FOV Service is misconfigured nbVideoTracks:%ld server:%s\n", nbVideoTracks, backendURL.c_str());
+		blog(LOG_WARNING, "FOV Service is misconfigured nbVideoTracks:%ld nbAudioTracks:%ld server:%s\n",
+			nbVideoTracks, nbAudioTracks, backendURL.c_str());
 		return nullptr;
 	}
 
@@ -95,6 +109,7 @@ const char *FOVService::getURL(void) noexcept
 	nlohmann::json jsonPayload;
 	jsonPayload["streamId"] = streamKey;
 	jsonPayload["tracks"] = nbVideoTracks;
+	jsonPayload["audioTracks"] = nbAudioTracks;
 
 	blog(LOG_INFO, "FOV Service making request to backend %s\n", APIRoute.c_str());
 	try {
@@ -105,7 +120,7 @@ const char *FOVService::getURL(void) noexcept
 		request.performRequest(3);
 
 		if (request.getResponseCode() == 200) {
-			blog(LOG_INFO, "FOV Service backend acknowledged %zu tracks [HTTP %d]: %s\n", nbVideoTracks,
+			blog(LOG_INFO, "FOV Service backend acknowledged %zu video tracks and %zu audio tracks [HTTP %d]: %s\n", nbVideoTracks, nbAudioTracks,
 			     request.getResponseCode(), request.getResponseContent().c_str());
 			started = true;
 			nlohmann::json response = nlohmann::json::parse(request.getResponseContent());

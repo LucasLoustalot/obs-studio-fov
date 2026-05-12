@@ -248,7 +248,7 @@ void AdvancedOutput::UpdateStreamSettings()
 
 	obs_encoder_update(videoStreaming, settings);
 
-	fov.updateEncoderSettings(settings, streamEncoder);
+	fov.updateVideoEncoderSettings(settings, streamEncoder);
 }
 
 AdvancedOutput::~AdvancedOutput()
@@ -539,6 +539,7 @@ inline void AdvancedOutput::UpdateAudioSettings()
 			obs_encoder_update(streamTrack[i], settings[i]);
 		}
 	}
+	fov.updateAudioEncoderSettings(settings[0], audioEncoder);
 }
 
 void AdvancedOutput::SetupOutputs()
@@ -744,14 +745,9 @@ bool AdvancedOutput::StartStreaming(obs_service_t *service)
 	}
 
 	if (checkIsFOV(service)) {
-		obs_encoder_t *activeAudioEnc = obs_output_get_audio_encoder(streamOutput, 0);
-
-		if (!activeAudioEnc) {
-			activeAudioEnc = streamAudioEnc;
-		}
-
-		fov.initSystem(activeAudioEnc, streamOutput);
+		fov.initSystem(streamOutput);
 		fov.syncSources();
+		obs_output_set_reconnect_settings(streamOutput, 0, 0);
 	}
 
 	if (obs_output_start(streamOutput)) {

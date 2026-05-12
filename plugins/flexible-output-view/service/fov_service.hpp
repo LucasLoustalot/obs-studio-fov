@@ -49,5 +49,6 @@ private:
 	std::string srtURL;
 	std::string streamKey;
 	size_t nbVideoTracks;
+	size_t nbAudioTracks;
 	bool started;
 };
