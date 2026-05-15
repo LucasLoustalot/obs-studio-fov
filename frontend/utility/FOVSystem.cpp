@@ -221,14 +221,20 @@ bool FOVSystem::AudioTrack::setSource(obs_source_t *rawSource)
 	return true;
 }
 
-FOVSystem::AudioTrack::AudioTrack(obs_source_t *rawSource, obs_data_t *audioSettings, std::string encoderid)
+FOVSystem::AudioTrack::AudioTrack(obs_source_t *rawSource, obs_data_t *audioSettings, std::string encoderid, int registeredMixes)
 	: encoderSettings(obs_data_create()),
 	  encoderID(encoderid)
 {
 	std::string encoderName = "FOV audio track " + std::string(obs_source_get_name(rawSource));
 
-	auto mixerMask = obs_source_get_audio_mixers(rawSource);
-	size_t mixerIndex = GetFirstMixerIndex(mixerMask);
+	size_t mixerIndex = 0;
+	if (registeredMixes <= -1) {
+		auto mixerMask = obs_source_get_audio_mixers(rawSource);
+		mixerIndex = GetFirstMixerIndex(mixerMask);
+	} else {
+		obs_source_set_audio_mixers(rawSource, 1 << registeredMixes);
+		mixerIndex = (size_t) registeredMixes + 1;
+	}
 
 	encoder = obs_audio_encoder_create(encoderID.c_str(), encoderName.c_str(), audioSettings, mixerIndex, nullptr);
 
@@ -283,7 +289,7 @@ void FOVSystem::addSource(obs_source_t *source)
 		videoTracks.emplace_back(std::make_unique<VideoTrack>(source, videoSettings, videoEncoderID));
 	}
 	if (obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO) {
-		audioTracks.emplace_back(std::make_unique<AudioTrack>(source, audioSettings, audioEncoderID));
+		audioTracks.emplace_back(std::make_unique<AudioTrack>(source, audioSettings, audioEncoderID, audioTracks.size()));
 	}
 	updateEncoderGroup();
 	updateServiceTracks();
