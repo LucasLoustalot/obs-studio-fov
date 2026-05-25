@@ -289,7 +289,7 @@ void FOVSystem::addSource(obs_source_t *source)
 		videoTracks.emplace_back(std::make_unique<VideoTrack>(source, videoSettings, videoEncoderID));
 	}
 	if (obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO) {
-		audioTracks.emplace_back(std::make_unique<AudioTrack>(source, audioSettings, audioEncoderID, audioTracks.size()));
+		audioTracks.emplace_back(std::make_unique<AudioTrack>(source, audioSettings, audioEncoderID, (int) audioTracks.size()));
 	}
 	updateEncoderGroup();
 	updateServiceTracks();
