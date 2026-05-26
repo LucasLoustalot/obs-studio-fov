@@ -73,7 +73,7 @@ protected:
 		OBSEncoder encoder;
         OBSData encoderSettings;
 
-		AudioTrack(obs_source_t *rawSource, obs_data_t *audioSettings, std::string encoderID);
+		AudioTrack(obs_source_t *rawSource, obs_data_t *audioSettings, std::string encoderID, int registeredMixes = -1);
 		~AudioTrack();
 
         void updateEncoderSettings(obs_data_t *videoSettings);
