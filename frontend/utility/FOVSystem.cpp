@@ -1,10 +1,9 @@
 /**
  * @file FOVSystem.cpp
  * @author The FOV Team
- * @brief The FOVSystem implementation
- * @version 0.1
+ * @brief Implementation of the FOVSystem class managing isolated multi-track video and audio encoders.
+ * @version 1.0
  * @date 2026-02-14
- *
  */
 
 #include "FOVSystem.hpp"
@@ -19,12 +18,36 @@
 #include <stdexcept>
 #include <string>
 
+/**
+ * @brief Get the index of the first active mixer track from a mixer mask.
+ * @param[in] mixerMask Bitmask representing active audio mixers.
+ * @return size_t Index of the first active mixer track. Returns 0 if no bits are set.
+ */
+static size_t GetFirstMixerIndex(uint32_t mixerMask)
+{
+	for (size_t i = 0; i < 6; i++) {
+		if (mixerMask & (1 << i)) {
+			return i;
+		}
+	}
+	return 0;
+}
+
+/**
+ * @brief Apply new settings to the video encoder.
+ * @param[in] videoSettings Pointer to the settings data object.
+ */
 void FOVSystem::VideoTrack::updateEncoderSettings(obs_data_t *videoSettings)
 {
 	obs_data_apply(encoderSettings, videoSettings);
 	obs_encoder_update(encoder, encoderSettings);
 }
 
+/**
+ * @brief Recreate the video context and view matching the current source properties.
+ * @return true True on success.
+ * @return false False if this->source is null, or if obs_view_add2 fails to allocate the video context.
+ */
 bool FOVSystem::VideoTrack::refreshVideoSettings()
 {
 	if (!this->source)
@@ -72,6 +95,12 @@ bool FOVSystem::VideoTrack::refreshVideoSettings()
 	return true;
 }
 
+/**
+ * @brief Change the encoder type used for this video track.
+ * @param[in] encoderID Identifier string of the OBS encoder.
+ * @return true True on success.
+ * @return false False if encoderID matches the current type, or if obs_video_encoder_create fails to instantiate the encoder.
+ */
 bool FOVSystem::VideoTrack::changeEncoderType(const std::string &encoderID)
 {
 	if (this->encoderID == encoderID)
@@ -102,6 +131,12 @@ bool FOVSystem::VideoTrack::changeEncoderType(const std::string &encoderID)
 	return true;
 }
 
+/**
+ * @brief Set the underlying OBS source for this video track.
+ * @param[in] rawSource Pointer to the OBS source. Pass nullptr to unbind and clear the track.
+ * @return true True on success.
+ * @return false False if rawSource is null, or if refreshVideoSettings fails during execution.
+ */
 bool FOVSystem::VideoTrack::setSource(obs_source_t *rawSource)
 {
 	if (!rawSource) {
@@ -121,6 +156,12 @@ bool FOVSystem::VideoTrack::setSource(obs_source_t *rawSource)
 	return true;
 }
 
+/**
+ * @brief Construct a new VideoTrack object.
+ * @param[in] rawSource Pointer to the OBS source.
+ * @param[in] videoSettings Pointer to the settings data object.
+ * @param[in] encoderid Identifier string of the OBS encoder.
+ */
 FOVSystem::VideoTrack::VideoTrack(obs_source_t *rawSource, obs_data_t *videoSettings, std::string encoderid)
 	: view(obs_view_create()),
 	  encoderSettings(obs_data_create()),
@@ -147,12 +188,21 @@ FOVSystem::VideoTrack::~VideoTrack()
 	}
 }
 
-void FOVSystem::AudioTrack::updateEncoderSettings(obs_data_t *videoSettings)
+/**
+ * @brief Apply new settings to the audio encoder.
+ * @param[in] audioSettings Pointer to the settings data object.
+ */
+void FOVSystem::AudioTrack::updateEncoderSettings(obs_data_t *audioSettings)
 {
-	obs_data_apply(encoderSettings, videoSettings);
+	obs_data_apply(encoderSettings, audioSettings);
 	obs_encoder_update(encoder, encoderSettings);
 }
 
+/**
+ * @brief Recreate the audio encoder, matching the current source properties.
+ * @return true True on success.
+ * @return false False if this->source is null.
+ */
 bool FOVSystem::AudioTrack::refreshAudioSettings()
 {
 	if (!this->source)
@@ -175,6 +225,12 @@ bool FOVSystem::AudioTrack::refreshAudioSettings()
 	return true;
 }
 
+/**
+ * @brief Change the encoder type used for this audio track.
+ * @param[in] encoderID Identifier string of the OBS encoder.
+ * @return true True on success.
+ * @return false False if encoderID matches the current type, or if obs_audio_encoder_create fails to instantiate the encoder.
+ */
 bool FOVSystem::AudioTrack::changeEncoderType(const std::string &encoderID)
 {
 	if (this->encoderID == encoderID)
@@ -184,7 +240,7 @@ bool FOVSystem::AudioTrack::changeEncoderType(const std::string &encoderID)
 		obs_encoder_set_audio(encoder, nullptr);
 	}
 
-	std::string encoderName = obs_encoder_get_name(encoder);
+	std::string encoderName = "FOV audio track " + std::string(obs_source_get_name(source));
 	this->encoderID = encoderID;
 
 	obs_encoder_release(encoder);
@@ -207,6 +263,12 @@ bool FOVSystem::AudioTrack::changeEncoderType(const std::string &encoderID)
 	return true;
 }
 
+/**
+ * @brief Set the underlying OBS source for this audio track.
+ * @param[in] rawSource Pointer to the OBS source. Pass nullptr to unbind and clear the track.
+ * @return true True on success.
+ * @return false False if rawSource is null.
+ */
 bool FOVSystem::AudioTrack::setSource(obs_source_t *rawSource)
 {
 	if (!rawSource) {
@@ -221,7 +283,15 @@ bool FOVSystem::AudioTrack::setSource(obs_source_t *rawSource)
 	return true;
 }
 
-FOVSystem::AudioTrack::AudioTrack(obs_source_t *rawSource, obs_data_t *audioSettings, std::string encoderid, int registeredMixes)
+/**
+ * @brief Construct a new AudioTrack object.
+ * @param[in] rawSource Pointer to the OBS source.
+ * @param[in] audioSettings Pointer to the settings data object.
+ * @param[in] encoderid Identifier string of the OBS encoder.
+ * @param[in] registeredMixes Count of already registered audio mixes. Used to programmatically assign the mixer ID bitmask.
+ */
+FOVSystem::AudioTrack::AudioTrack(obs_source_t *rawSource, obs_data_t *audioSettings, std::string encoderid,
+				  int registeredMixes)
 	: encoderSettings(obs_data_create()),
 	  encoderID(encoderid)
 {
@@ -233,7 +303,7 @@ FOVSystem::AudioTrack::AudioTrack(obs_source_t *rawSource, obs_data_t *audioSett
 		mixerIndex = GetFirstMixerIndex(mixerMask);
 	} else {
 		obs_source_set_audio_mixers(rawSource, 1 << registeredMixes);
-		mixerIndex = (size_t) registeredMixes + 1;
+		mixerIndex = (size_t)registeredMixes + 1;
 	}
 
 	encoder = obs_audio_encoder_create(encoderID.c_str(), encoderName.c_str(), audioSettings, mixerIndex, nullptr);
@@ -249,6 +319,9 @@ FOVSystem::AudioTrack::~AudioTrack()
 	}
 }
 
+/**
+ * @brief Construct a new FOVSystem object.
+ */
 FOVSystem::FOVSystem()
 	: videoSettings(obs_data_create()),
 	  audioSettings(obs_data_create()),
@@ -259,6 +332,12 @@ FOVSystem::FOVSystem()
 
 FOVSystem::~FOVSystem() {}
 
+/**
+ * @brief Initialize the FOVSystem with a specific muxer output and default settings.
+ * @param[in] ffmpegMpegtsMuxerOutput Pointer to the MPEG-TS muxer output.
+ * @param[in] videoSettings Pointer to the settings data object.
+ * @param[in] audioSettings Pointer to the settings data object.
+ */
 void FOVSystem::initSystem(obs_output_t *ffmpegMpegtsMuxerOutput, obs_data_t *videoSettings, obs_data_t *audioSettings)
 {
 	if (isInit)
@@ -278,6 +357,10 @@ void FOVSystem::initSystem(obs_output_t *ffmpegMpegtsMuxerOutput, obs_data_t *vi
 	isInit = true;
 }
 
+/**
+ * @brief Add a new source to the FOVSystem and create its corresponding tracks.
+ * @param[in] source Pointer to the OBS source.
+ */
 void FOVSystem::addSource(obs_source_t *source)
 {
 	if (!isInit)
@@ -289,12 +372,19 @@ void FOVSystem::addSource(obs_source_t *source)
 		videoTracks.emplace_back(std::make_unique<VideoTrack>(source, videoSettings, videoEncoderID));
 	}
 	if (obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO) {
-		audioTracks.emplace_back(std::make_unique<AudioTrack>(source, audioSettings, audioEncoderID, (int) audioTracks.size()));
+		audioTracks.emplace_back(
+			std::make_unique<AudioTrack>(source, audioSettings, audioEncoderID, (int)audioTracks.size()));
 	}
 	updateEncoderGroup();
 	updateServiceTracks();
 }
 
+/**
+ * @brief Remove a source and its tracks from the FOVSystem.
+ * @param[in] source Pointer to the OBS source.
+ * @return true True on success.
+ * @return false False if isInit is false, if source is null, or if the source is not found in the tracking deques.
+ */
 bool FOVSystem::removeSource(obs_source_t *source)
 {
 	if (!isInit)
@@ -330,6 +420,9 @@ bool FOVSystem::removeSource(obs_source_t *source)
 	return found;
 }
 
+/**
+ * @brief Remove all active sources and tracks from the FOVSystem.
+ */
 void FOVSystem::clearSources()
 {
 	if (!isInit)
@@ -340,6 +433,11 @@ void FOVSystem::clearSources()
 	updateServiceTracks();
 }
 
+/**
+ * @brief Update settings and type for all active video encoders.
+ * @param[in] encoderSettings Pointer to the settings data object.
+ * @param[in] encoderID Identifier string of the OBS encoder.
+ */
 void FOVSystem::updateVideoEncoderSettings(obs_data_t *encoderSettings, const std::string &encoderID)
 {
 	if (encoderSettings == nullptr) {
@@ -366,6 +464,11 @@ void FOVSystem::updateVideoEncoderSettings(obs_data_t *encoderSettings, const st
 	updateEncoderGroup();
 }
 
+/**
+ * @brief Update settings and type for all active audio encoders.
+ * @param[in] encoderSettings Pointer to the settings data object.
+ * @param[in] encoderID Identifier string of the OBS encoder.
+ */
 void FOVSystem::updateAudioEncoderSettings(obs_data_t *encoderSettings, const std::string &encoderID)
 {
 	if (encoderSettings == nullptr) {
@@ -392,6 +495,9 @@ void FOVSystem::updateAudioEncoderSettings(obs_data_t *encoderSettings, const st
 	updateEncoderGroup();
 }
 
+/**
+ * @brief Rebuild the encoder group and bind active track encoders to the output muxer.
+ */
 void FOVSystem::updateEncoderGroup()
 {
 	if (!isInit)
@@ -434,6 +540,9 @@ void FOVSystem::updateEncoderGroup()
 	encoderGroup = newGroup;
 }
 
+/**
+ * @brief Update the track counts in the active service configuration settings.
+ */
 void FOVSystem::updateServiceTracks()
 {
 	if (!isInit)
@@ -447,6 +556,9 @@ void FOVSystem::updateServiceTracks()
 	}
 }
 
+/**
+ * @brief Synchronize active sources by scanning all available OBS audio and video sources.
+ */
 void FOVSystem::syncSources()
 {
 	if (!isInit)
