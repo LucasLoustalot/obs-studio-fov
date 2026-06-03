@@ -50,5 +50,9 @@ private:
 	std::string streamKey;
 	size_t nbVideoTracks;
 	size_t nbAudioTracks;
+	nlohmann::json videoTrackNames;
+	nlohmann::json audioTrackNames;
 	bool started;
 };
+
+bool obs_array_to_json(obs_data_array_t *array, nlohmann::json &json_out, const std::string &objectName = "");

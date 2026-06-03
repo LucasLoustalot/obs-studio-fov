@@ -12,6 +12,7 @@
 #include "obs-output.h"
 #include "obs-source.h"
 #include "obs.h"
+#include "obs.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -221,7 +222,8 @@ bool FOVSystem::AudioTrack::setSource(obs_source_t *rawSource)
 	return true;
 }
 
-FOVSystem::AudioTrack::AudioTrack(obs_source_t *rawSource, obs_data_t *audioSettings, std::string encoderid, int registeredMixes)
+FOVSystem::AudioTrack::AudioTrack(obs_source_t *rawSource, obs_data_t *audioSettings, std::string encoderid,
+				  int registeredMixes)
 	: encoderSettings(obs_data_create()),
 	  encoderID(encoderid)
 {
@@ -233,7 +235,7 @@ FOVSystem::AudioTrack::AudioTrack(obs_source_t *rawSource, obs_data_t *audioSett
 		mixerIndex = GetFirstMixerIndex(mixerMask);
 	} else {
 		obs_source_set_audio_mixers(rawSource, 1 << registeredMixes);
-		mixerIndex = (size_t) registeredMixes + 1;
+		mixerIndex = (size_t)registeredMixes + 1;
 	}
 
 	encoder = obs_audio_encoder_create(encoderID.c_str(), encoderName.c_str(), audioSettings, mixerIndex, nullptr);
@@ -289,7 +291,8 @@ void FOVSystem::addSource(obs_source_t *source)
 		videoTracks.emplace_back(std::make_unique<VideoTrack>(source, videoSettings, videoEncoderID));
 	}
 	if (obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO) {
-		audioTracks.emplace_back(std::make_unique<AudioTrack>(source, audioSettings, audioEncoderID, (int) audioTracks.size()));
+		audioTracks.emplace_back(
+			std::make_unique<AudioTrack>(source, audioSettings, audioEncoderID, (int)audioTracks.size()));
 	}
 	updateEncoderGroup();
 	updateServiceTracks();
@@ -436,15 +439,46 @@ void FOVSystem::updateEncoderGroup()
 
 void FOVSystem::updateServiceTracks()
 {
-	if (!isInit)
+	if (!isInit) {
 		return;
-	auto service = obs_output_get_service(ffmpegMpegtsMuxerOutput);
-	if (service != nullptr) {
-		OBSDataAutoRelease data = obs_service_get_settings(service);
-		obs_data_set_int(data, "video_encoder_count", (long long)videoTracks.size());
-		obs_data_set_int(data, "audio_track_count", (long long)audioTracks.size());
-		obs_service_update(service, data);
 	}
+
+	obs_service_t *service = obs_output_get_service(ffmpegMpegtsMuxerOutput);
+	if (!service) {
+		return;
+	}
+
+	OBSDataAutoRelease data = obs_service_get_settings(service);
+	if (!data) {
+		return;
+	}
+
+	obs_data_set_int(data, "video_encoder_count", static_cast<long long>(videoTracks.size()));
+	obs_data_set_int(data, "audio_track_count", static_cast<long long>(audioTracks.size()));
+
+	OBSDataArrayAutoRelease videoArray = obs_data_array_create();
+	for (const auto &track : videoTracks) {
+		if (track && track->source) {
+			const char *sourceName = obs_source_get_name(track->source);
+			OBSData item = obs_data_create();
+			obs_data_set_string(item, "name", sourceName ? sourceName : "");
+			obs_data_array_push_back(videoArray, item);
+		}
+	}
+	obs_data_set_array(data, "videoTrackNames", videoArray);
+
+	OBSDataArrayAutoRelease audioArray = obs_data_array_create();
+	for (const auto &track : audioTracks) {
+		if (track && track->source) {
+			const char *sourceName = obs_source_get_name(track->source);
+			OBSData item = obs_data_create();
+			obs_data_set_string(item, "name", sourceName ? sourceName : "");
+			obs_data_array_push_back(audioArray, item);
+		}
+	}
+	obs_data_set_array(data, "audioTrackNames", audioArray);
+
+	obs_service_update(service, data);
 }
 
 void FOVSystem::syncSources()
