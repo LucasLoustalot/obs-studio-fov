@@ -8,6 +8,7 @@
 
 #include "fov_service.hpp"
 #include "curl_wrapper.hpp"
+#include "obs-data.h"
 #include "util/base.h"
 #include <string>
 #include <thread>
@@ -17,6 +18,54 @@ static const char *fov_audio_codecs[] = {"opus", "aac",
 					 nullptr};         /**< Array containing supported audio codec string names. */
 static const char *fov_video_codecs[] = {"h264", nullptr}; /**< Array containing supported video codec string names. */
 
+/**
+ * @brief Converts an obs data array to an nlohmann json structure.
+ * @param[in] array OBS data array to parse. Execution returns early if null.
+ * @param[out] json_out Target JSON container to populate with parsed array contents.
+ * @param[in] objectName Optional JSON key name wrapper. Default behavior passes an unmapped array if left empty.
+ * @return bool Returns true if array translation and JSON parsing completed without structural exception errors.
+ */
+bool obs_array_to_json(obs_data_array_t *array, nlohmann::json &json_out, const std::string &objectName)
+{
+	json_out.clear();
+
+	if (!array) {
+		return false;
+	}
+
+	nlohmann::json json_array = nlohmann::json::array();
+	const size_t count = obs_data_array_count(array);
+
+	for (size_t i = 0; i < count; ++i) {
+		obs_data_t *item = obs_data_array_item(array, i);
+		if (!item) {
+			return false;
+		}
+
+		const char *json_str = obs_data_get_json(item);
+		if (!json_str) {
+			obs_data_release(item);
+			return false;
+		}
+
+		try {
+			json_array.push_back(nlohmann::json::parse(json_str));
+		} catch (const nlohmann::json::parse_error &) {
+			obs_data_release(item);
+			return false;
+		}
+
+		obs_data_release(item);
+	}
+
+	if (objectName.empty()) {
+		json_out = std::move(json_array);
+	} else {
+		json_out[objectName] = std::move(json_array);
+	}
+
+	return true;
+}
 /**
  * @brief Construct a new FOVService object and parse initial configuration parameters.
  * @param[in] settings Pointer to the OBS settings data object.
@@ -53,25 +102,44 @@ const char *FOVService::getName() const noexcept
  */
 void FOVService::update(obs_data_t *settings) noexcept
 {
-	size_t nbVideoTracks = 0;
-	size_t nbAudioTracks = 0;
+	if (!settings) {
+		return;
+	}
+
+	size_t newVideoTracks = 0;
+	size_t newAudioTracks = 0;
 
 	backendURL = obs_data_get_string(settings, "server");
 	streamKey = obs_data_get_string(settings, "key");
 
-	nbVideoTracks = obs_data_get_int(settings, "video_encoder_count");
-	nbAudioTracks = obs_data_get_int(settings, "audio_track_count");
-	if (nbVideoTracks <= 0) {
-		blog(LOG_WARNING, "FOV Service invalid 'video_encoder_count' property, defaulting to 1");
-		nbVideoTracks = 1;
+
+	newVideoTracks = obs_data_get_int(settings, "video_encoder_count");
+	newAudioTracks = obs_data_get_int(settings, "audio_track_count");
+
+	obs_data_array_t *videoNames = obs_data_get_array(settings, "videoTrackNames");
+	obs_data_array_t *audioNames = obs_data_get_array(settings, "audioTrackNames");
+
+	obs_array_to_json(videoNames, videoTrackNames);
+	obs_array_to_json(audioNames, audioTrackNames);
+
+	if (videoNames) {
+		obs_data_array_release(videoNames);
 	}
-	if (nbAudioTracks <= 0) {
-		blog(LOG_WARNING, "FOV Service invalid 'audio_track_count' property, defaulting to 1");
-		nbAudioTracks = 1;
+	if (audioNames) {
+		obs_data_array_release(audioNames);
 	}
 
-	this->nbVideoTracks = nbVideoTracks;
-	this->nbAudioTracks = nbAudioTracks;
+	if (newVideoTracks <= 0) {
+		blog(LOG_WARNING, "FOV Service invalid 'video_encoder_count' property, defaulting to 1");
+		newVideoTracks = 1;
+	}
+	if (newAudioTracks <= 0) {
+		blog(LOG_WARNING, "FOV Service invalid 'audio_track_count' property, defaulting to 1");
+		newAudioTracks = 1;
+	}
+
+	this->nbVideoTracks = newVideoTracks;
+	this->nbAudioTracks = newAudioTracks;
 
 	blog(LOG_INFO, "FOV Service settings changed: nbVideoTracks:%ld nbAudioTracks:%ld server:%s key:%s\n",
 	     nbVideoTracks, nbAudioTracks, backendURL.c_str(), streamKey.c_str());
@@ -138,12 +206,13 @@ const char *FOVService::getURL(void) noexcept
 		return srtURL.c_str();
 	}
 
-	// Making post request to backend
 	const std::string APIRoute = backendURL + API_FFMPEG_START_ROUTE;
 	nlohmann::json jsonPayload;
 	jsonPayload["streamId"] = streamKey;
 	jsonPayload["tracks"] = nbVideoTracks;
+	jsonPayload["videoTrackNames"] = videoTrackNames;
 	jsonPayload["audioTracks"] = nbAudioTracks;
+	jsonPayload["audioTrackNames"] = audioTrackNames;
 
 	blog(LOG_INFO, "FOV Service making request to backend %s\n", APIRoute.c_str());
 	try {
@@ -192,7 +261,6 @@ void FOVService::deactivate(void) noexcept
 {
 	blog(LOG_INFO, "FOV Service deactivated\n");
 
-	// Making post request to backend
 	const std::string APIRoute = backendURL + API_FFMPEG_STOP_ROUTE;
 	nlohmann::json jsonPayload;
 	jsonPayload["streamId"] = streamKey;

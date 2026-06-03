@@ -104,5 +104,9 @@ private:
 	std::string streamKey;  /**< Authentication token string assigned to validate the active streaming session. */
 	size_t nbVideoTracks;   /**< Cached count tracking the number of active concurrent video pipelines. */
 	size_t nbAudioTracks;   /**< Cached count tracking the number of active concurrent audio buses. */
-	bool started; /**< Internal state tracking flag confirming if backend session signaling has executed successfully. */
+	nlohmann::json videoTrackNames;
+	nlohmann::json audioTrackNames;
+	bool started;           /**< Internal state tracking flag confirming if backend session signaling has executed successfully. */
 };
+
+bool obs_array_to_json(obs_data_array_t *array, nlohmann::json &json_out, const std::string &objectName = "");
