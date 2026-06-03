@@ -1,7 +1,7 @@
 /**
  * @file curl_wrapper.cpp
  * @author The FOV Team
- * @brief Simple c++ CURL wrapper
+ * @brief Implementation of the SimpleCurlRequest class managing synchronous HTTP operations via libcurl.
  * @version 0.1
  * @date 2026-02-07
  */
@@ -10,6 +10,12 @@
 
 #include "curl_wrapper.hpp"
 
+/**
+ * @brief Construct a new SimpleCurlRequest object.
+ * @param[in] url String containing the target URL.
+ * @param[in] method HTTP method enum value (e.g., HTTP_GET, HTTP_POST).
+ * @throws SimpleCurlException If curl_easy_init fails to allocate the internal CURL handle.
+ */
 SimpleCurlRequest::SimpleCurlRequest(const std::string &url, httpMethod method)
 	: curl(nullptr),
 	  requestHeaders(nullptr),
@@ -30,6 +36,9 @@ SimpleCurlRequest::SimpleCurlRequest(const std::string &url, httpMethod method)
 	setHttpMethod(method);
 }
 
+/**
+ * @brief Destroy the SimpleCurlRequest object and free allocated resources.
+ */
 SimpleCurlRequest::~SimpleCurlRequest()
 {
 	if (requestHeaders != nullptr) {
@@ -40,6 +49,10 @@ SimpleCurlRequest::~SimpleCurlRequest()
 	}
 }
 
+/**
+ * @brief Set the HTTP method for the request.
+ * @param[in] method HTTP method enum value (e.g., HTTP_GET, HTTP_POST).
+ */
 void SimpleCurlRequest::setHttpMethod(httpMethod method)
 {
 	this->method = method;
@@ -50,6 +63,11 @@ void SimpleCurlRequest::setHttpMethod(httpMethod method)
 	}
 }
 
+/**
+ * @brief Set the HTTP headers for the request.
+ * @param[in] headers Vector of strings containing the HTTP headers.
+ * @throws SimpleCurlException If curl_slist_append fails to allocate memory for the header list.
+ */
 void SimpleCurlRequest::setHeaders(const std::vector<std::string> &headers)
 {
 	if (requestHeaders != nullptr) {
@@ -66,12 +84,22 @@ void SimpleCurlRequest::setHeaders(const std::vector<std::string> &headers)
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, requestHeaders);
 }
 
+/**
+ * @brief Set the payload data for an HTTP POST request.
+ * @param[in] payload String containing the request payload data.
+ */
 void SimpleCurlRequest::setRequestPayload(const std::string &payload)
 {
 	this->payload = payload;
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, this->payload.c_str());
 }
 
+/**
+ * @brief Execute the configured HTTP request.
+ * @param[in] timeout Request timeout duration in seconds.
+ * @return int HTTP response code on success.
+ * @throws SimpleCurlException If curl_easy_perform returns an error code other than CURLE_OK.
+ */
 int SimpleCurlRequest::performRequest(int timeout)
 {
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
@@ -86,16 +114,32 @@ int SimpleCurlRequest::performRequest(int timeout)
 	}
 }
 
+/**
+ * @brief Get the HTTP response code from the executed request.
+ * @return int HTTP response code.
+ */
 int SimpleCurlRequest::getResponseCode(void) const
 {
 	return requestResult;
 }
 
+/**
+ * @brief Get the response body content from the executed request.
+ * @return std::string String containing the raw response body.
+ */
 std::string SimpleCurlRequest::getResponseContent(void) const
 {
 	return responseContent;
 }
 
+/**
+ * @brief Callback function used by CURL to write incoming data chunks.
+ * @param[in] contents Pointer to the incoming data chunk.
+ * @param[in] size Size of an individual data element.
+ * @param[in] nmemb Number of data elements.
+ * @param[in,out] userp Pointer to the destination string object.
+ * @return size_t Total number of bytes processed.
+ */
 size_t SimpleCurlRequest::writeCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
 	size_t realsize = size * nmemb;

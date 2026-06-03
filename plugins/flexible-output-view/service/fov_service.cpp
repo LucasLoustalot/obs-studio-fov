@@ -14,8 +14,9 @@
 #include <thread>
 #include <vector>
 
-static const char *fov_audio_codecs[] = {"opus", "aac", nullptr};
-static const char *fov_video_codecs[] = {"h264", nullptr};
+static const char *fov_audio_codecs[] = {"opus", "aac",
+					 nullptr};         /**< Array containing supported audio codec string names. */
+static const char *fov_video_codecs[] = {"h264", nullptr}; /**< Array containing supported video codec string names. */
 
 /**
  * @brief Converts an obs data array to an nlohmann json structure.
@@ -65,7 +66,11 @@ bool obs_array_to_json(obs_data_array_t *array, nlohmann::json &json_out, const 
 
 	return true;
 }
-
+/**
+ * @brief Construct a new FOVService object and parse initial configuration parameters.
+ * @param[in] settings Pointer to the OBS settings data object.
+ * @param[in] service Unused pointer to the associated OBS service context object.
+ */
 FOVService::FOVService(obs_data_t *settings, obs_service_t *) noexcept
 	: backendURL(""),
 	  srtURL(""),
@@ -77,13 +82,24 @@ FOVService::FOVService(obs_data_t *settings, obs_service_t *) noexcept
 	update(settings);
 }
 
+/**
+ * @brief Destroy the FOVService object.
+ */
 FOVService::~FOVService() noexcept {}
 
+/**
+ * @brief Get the display name of the service.
+ * @return const char* Pointer to a null-terminated string containing the service name.
+ */
 const char *FOVService::getName() const noexcept
 {
 	return "FOV Service";
 }
 
+/**
+ * @brief Update the internal service configuration parameters with new settings.
+ * @param[in] settings Pointer to the OBS settings data object. Execution returns early without modifying state if settings is null. Defaults track counts to 1 if properties evaluate to less than or equal to 0.
+ */
 void FOVService::update(obs_data_t *settings) noexcept
 {
 	if (!settings) {
@@ -95,6 +111,7 @@ void FOVService::update(obs_data_t *settings) noexcept
 
 	backendURL = obs_data_get_string(settings, "server");
 	streamKey = obs_data_get_string(settings, "key");
+
 
 	newVideoTracks = obs_data_get_int(settings, "video_encoder_count");
 	newAudioTracks = obs_data_get_int(settings, "audio_track_count");
@@ -128,6 +145,10 @@ void FOVService::update(obs_data_t *settings) noexcept
 	     nbVideoTracks, nbAudioTracks, backendURL.c_str(), streamKey.c_str());
 }
 
+/**
+ * @brief Generate the UI property definitions structure for user configuration.
+ * @return obs_properties_t* Pointer to the allocated properties object. Returns null if memory allocation fails.
+ */
 obs_properties_t *FOVService::getProperties(void) noexcept
 {
 	obs_properties_t *ppts = obs_properties_create();
@@ -140,6 +161,11 @@ obs_properties_t *FOVService::getProperties(void) noexcept
 	return ppts;
 }
 
+/**
+ * @brief Parse encoder settings datasets to extract and cache active video and audio track parameters.
+ * @param[in] video_settings Pointer to the video encoder settings data object.
+ * @param[in] audio_settings Pointer to the audio encoder settings data object.
+ */
 void FOVService::applyEncoderSettings(obs_data_t *video_settings, obs_data_t *audio_settings) noexcept
 {
 	obs_data_set_bool(video_settings, "repeat_headers", true);
@@ -148,6 +174,11 @@ void FOVService::applyEncoderSettings(obs_data_t *video_settings, obs_data_t *au
 	blog(LOG_INFO, "FOV Service applied encoder settings\n");
 }
 
+/**
+ * @brief Get specific connection credentials or routing metadata by data category type.
+ * @param[in] type Numeric identifier code indicating the requested connection parameter data type.
+ * @return const char* Pointer to a null-terminated string containing the requested configuration value. Returns null if the type identifier code is invalid or unhandled.
+ */
 const char *FOVService::getConnectInfo(uint32_t type) noexcept
 {
 	switch ((enum obs_service_connect_info)type) {
@@ -159,6 +190,10 @@ const char *FOVService::getConnectInfo(uint32_t type) noexcept
 	return nullptr;
 }
 
+/**
+ * @brief Get the current target stream or backend server URL. Performs synchronous registration request to the backend API if not already initialized.
+ * @return const char* Pointer to a null-terminated string containing the resolved SRT ingest URL. Returns null if the backend server address is empty or if video track tracking is unconfigured. Returns an empty string literal ("\0") if the server responds with a non-200 HTTP code or if a transport exception occurs.
+ */
 const char *FOVService::getURL(void) noexcept
 {
 	if (backendURL.empty() || nbVideoTracks == 0) {
@@ -210,11 +245,18 @@ const char *FOVService::getURL(void) noexcept
 	}
 }
 
+/**
+ * @brief Activate the service and transmit track registration metadata to the backend API.
+ * @param[in] settings Unused pointer to the OBS settings data object.
+ */
 void FOVService::activate(obs_data_t *) noexcept
 {
 	blog(LOG_INFO, "FOV Service activated\n");
 }
 
+/**
+ * @brief Deactivate the service and notify the backend API to terminate the streaming session. Dispatches the notification request on an isolated asynchronous background worker thread.
+ */
 void FOVService::deactivate(void) noexcept
 {
 	blog(LOG_INFO, "FOV Service deactivated\n");
@@ -244,7 +286,9 @@ void FOVService::deactivate(void) noexcept
 }
 
 extern "C" {
-
+/**
+ * @brief Register the custom FOV service module with the OBS framework core.
+ */
 void registerFOVService(void)
 {
 	struct obs_service_info info = {};
