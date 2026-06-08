@@ -9,7 +9,6 @@ jobs:
   check_program_compilation_linux:
     name: FOV - Build on Linux
     runs-on: [ self-hosted, linux, x64, ubuntu ]
-
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -17,6 +16,12 @@ jobs:
 
       - name: Build
         run: ./.github/scripts/FOV/build_linux.sh
+
+      - name: Upload Full Build Directory for Analyzer
+        uses: actions/upload-artifact@v5
+        with:
+          name: linux-build-folder
+          path: build/
 
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v5
@@ -53,3 +58,27 @@ jobs:
 
       - name: Build
         run: ./.github/scripts/FOV/build_macos.sh
+
+  code_analyzer:
+    name: Code analyzer cppcheck
+    needs: check_program_compilation_linux
+    runs-on: [ self-hosted, linux, x64, ubuntu ]
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - name: Download Linux Build Folder
+        uses: actions/download-artifact@v5
+        with:
+          name: linux-build-folder
+          path: build/
+
+      - name: Run cppcheck
+        run: ./.github/scripts/FOV/run_cppcheck.sh
+
+      - name: Publish cppcheck
+        if: always()
+        run: ./.github/scripts/FOV/cppcheck_publisher.sh
