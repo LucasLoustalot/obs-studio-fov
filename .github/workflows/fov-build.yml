@@ -1,5 +1,5 @@
 name: Build OBS-FOV
-description: OBS-FOV Build
+
 on:
   push:
     branches-ignore:
@@ -13,13 +13,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build
         run: ./.github/scripts/FOV/build_linux.sh
 
       - name: Upload Linux Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: obs-fov-linux
           path: build/rundir/
@@ -31,13 +31,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build
         run: ./.github/scripts/FOV/build_windows.ps1
 
       - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: obs-fov-windows
           path: build_x64/rundir
@@ -49,7 +49,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build
         run: ./.github/scripts/FOV/build_macos.sh
