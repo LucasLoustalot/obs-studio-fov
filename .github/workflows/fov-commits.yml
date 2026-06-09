@@ -8,10 +8,10 @@ on:
 jobs:
   lint_commit:
     name: Check commit standard
-    runs-on: [ self-hosted, linux, x64 ]
+    runs-on: [ linux, x64 ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: lint
         run: |
           ./.github/scripts/FOV/commit_lint.sh
