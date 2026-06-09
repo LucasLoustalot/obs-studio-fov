@@ -82,3 +82,9 @@ jobs:
       - name: Publish cppcheck
         if: always()
         run: ./.github/scripts/FOV/cppcheck_publisher.sh
+
+      - name: Upload cppcheck artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: cppcheck
+          path: check.txt
