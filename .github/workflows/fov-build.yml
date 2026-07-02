@@ -49,7 +49,7 @@ jobs:
 
   check_program_compilation_macos:
     name: FOV - Build on macOS
-    runs-on: macos-latest
+    runs-on: macos-15
 
     timeout-minutes: 20
     steps:
