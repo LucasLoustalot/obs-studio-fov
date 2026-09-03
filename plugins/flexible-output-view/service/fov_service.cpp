@@ -10,6 +10,7 @@
 #include "curl_wrapper.hpp"
 #include "obs-data.h"
 #include "util/base.h"
+#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <thread>
 #include <vector>
@@ -66,6 +67,7 @@ bool obs_array_to_json(obs_data_array_t *array, nlohmann::json &json_out, const 
 
 	return true;
 }
+
 /**
  * @brief Construct a new FOVService object and parse initial configuration parameters.
  * @param[in] settings Pointer to the OBS settings data object.
@@ -112,13 +114,14 @@ void FOVService::update(obs_data_t *settings) noexcept
 	backendURL = obs_data_get_string(settings, "server");
 	streamKey = obs_data_get_string(settings, "key");
 
-
 	newVideoTracks = obs_data_get_int(settings, "video_encoder_count");
 	newAudioTracks = obs_data_get_int(settings, "audio_track_count");
 
 	obs_data_array_t *videoNames = obs_data_get_array(settings, "videoTrackNames");
 	obs_data_array_t *audioNames = obs_data_get_array(settings, "audioTrackNames");
 
+	videoTrackNames.clear();
+	audioTrackNames.clear();
 	obs_array_to_json(videoNames, videoTrackNames);
 	obs_array_to_json(audioNames, audioTrackNames);
 
