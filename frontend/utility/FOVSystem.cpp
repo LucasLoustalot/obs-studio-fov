@@ -609,7 +609,11 @@ void FOVSystem::syncSources()
 	std::set<obs_source_t *> validSources;
 	for (auto source : currentObsSources) {
 		uint32_t flags = obs_source_get_output_flags(source);
-		if (flags & OBS_SOURCE_VIDEO || flags & OBS_SOURCE_AUDIO) {
+		if (flags & OBS_SOURCE_VIDEO) {
+			if (obs_source_showing(source) && obs_source_active(source) && !obs_source_is_hidden(source))
+				validSources.insert(source);
+		}
+		if (flags & OBS_SOURCE_AUDIO) {
 			validSources.insert(source);
 		}
 	}
