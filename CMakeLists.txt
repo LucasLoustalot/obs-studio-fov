@@ -21,6 +21,9 @@ option(ENABLE_UI "Enable building with UI (requires Qt)" ON)
 option(ENABLE_SCRIPTING "Enable scripting support" ON)
 option(ENABLE_HEVC "Enable HEVC encoders" ON)
 
+# FOV Specific debug flags
+add_compile_definitions(DEBUG_SRT_STREAM)
+
 add_subdirectory(libobs)
 if(OS_WINDOWS)
   add_subdirectory(libobs-d3d11)
