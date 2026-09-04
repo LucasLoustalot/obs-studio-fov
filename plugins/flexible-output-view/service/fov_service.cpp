@@ -327,7 +327,6 @@ void registerFOVService(void)
 	info.get_connect_info = [](void *priv_data, uint32_t type) -> const char * {
 		return static_cast<FOVService *>(priv_data)->getConnectInfo((enum obs_service_connect_info)type);
 	};
-
 	info.activate = [](void *priv_data, obs_data_t *settings) -> void {
 		return static_cast<FOVService *>(priv_data)->activate(settings);
 	};

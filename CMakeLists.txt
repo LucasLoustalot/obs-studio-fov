@@ -22,7 +22,7 @@ option(ENABLE_SCRIPTING "Enable scripting support" ON)
 option(ENABLE_HEVC "Enable HEVC encoders" ON)
 
 # FOV Specific debug flags
-add_compile_definitions(DEBUG_SRT_STREAM)
+option(ENABLE_FOV_DEBUG_SRT "Enable SRT stream debugging for flexible-output-view" ON)
 
 add_subdirectory(libobs)
 if(OS_WINDOWS)

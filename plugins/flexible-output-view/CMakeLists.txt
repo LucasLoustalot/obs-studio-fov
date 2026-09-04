@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.28)
 add_library(flexible-output-view MODULE)
 add_library(OBS::flexible-output-view ALIAS flexible-output-view)
 
+if(ENABLE_FOV_DEBUG_SRT)
+    target_compile_definitions(flexible-output-view PUBLIC DEBUG_SRT_STREAM)
+endif()
 
 target_sources(flexible-output-view PRIVATE
     fov.cpp
