@@ -22,7 +22,7 @@
 #include <string>
 #include <filesystem>
 
-namespace OBS {
+namespace FOV {
 
 enum class SceneCoordinateMode { Invalid, Absolute, Relative };
 
@@ -61,4 +61,4 @@ public:
 
 	bool empty() const { return name_.empty() || filePath_.empty(); }
 };
-} // namespace OBS
+} // namespace FOV

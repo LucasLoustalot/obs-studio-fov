@@ -129,7 +129,7 @@ std::string GetProgramGUID()
 	std::lock_guard<std::mutex> lock(m);
 
 	/* NOTE: this is an arbitrary random number that we use to count the
-	 * number of unique OBS installations and is not associated with any
+	 * number of unique FOV installations and is not associated with any
 	 * kind of identifiable information */
 	const char *pguid = config_get_string(App()->GetAppConfig(), "General", "InstallGUID");
 	std::string guid;
@@ -153,9 +153,9 @@ static void LoadPublicKey(std::string &pubkey)
 	std::string pemFilePath;
 
 	if (!GetDataFilePath("OBSPublicRSAKey.pem", pemFilePath))
-		throw std::string("Could not find OBS public key file!");
+		throw std::string("Could not find FOV public key file!");
 	if (!QuickReadFile(pemFilePath.c_str(), pubkey))
-		throw std::string("Could not read OBS public key file!");
+		throw std::string("Could not read FOV public key file!");
 }
 
 static bool CheckDataSignature(const char *name, const std::string &data, const std::string &hexSig)

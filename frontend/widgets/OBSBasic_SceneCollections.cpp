@@ -37,8 +37,8 @@ extern bool opt_start_virtualcam;
 extern bool opt_start_replaybuffer;
 extern std::string opt_starting_scene;
 
-using SceneCoordinateMode = OBS::SceneCoordinateMode;
-using SceneCollection = OBS::SceneCollection;
+using SceneCoordinateMode = FOV::SceneCoordinateMode;
+using SceneCollection = FOV::SceneCollection;
 
 // MARK: Constant Expressions
 
@@ -702,7 +702,7 @@ void OBSBasic::on_actionRemigrateSceneCollection_triggered()
 
 	SceneCollection &currentCollection = GetCurrentSceneCollection();
 	SceneCoordinateMode currentCoordinateMode = currentCollection.getCoordinateMode();
-	OBS::Rect currentMigrationResolution = currentCollection.getMigrationResolution();
+	FOV::Rect currentMigrationResolution = currentCollection.getMigrationResolution();
 
 	if (currentCoordinateMode == SceneCoordinateMode::Relative && currentMigrationResolution.isZero()) {
 		OBSMessageBox::warning(
@@ -714,7 +714,7 @@ void OBSBasic::on_actionRemigrateSceneCollection_triggered()
 	obs_video_info ovi;
 	obs_get_video_info(&ovi);
 
-	OBS::Rect videoResolution = OBS::Rect(ovi.base_width, ovi.base_height);
+	FOV::Rect videoResolution = FOV::Rect(ovi.base_width, ovi.base_height);
 
 	if (currentCoordinateMode == SceneCoordinateMode::Relative && currentMigrationResolution == videoResolution) {
 		OBSMessageBox::warning(
@@ -885,7 +885,7 @@ void OBSBasic::Save(SceneCollection &collection)
 	OBSDataArrayAutoRelease transitionsData = SaveTransitions();
 	OBSDataArrayAutoRelease quickTrData = SaveQuickTransitions();
 	OBSDataArrayAutoRelease savedProjectorList = SaveProjectors();
-	OBSDataArrayAutoRelease savedCanvases = OBS::Canvas::SaveCanvases(canvases);
+	OBSDataArrayAutoRelease savedCanvases = FOV::Canvas::SaveCanvases(canvases);
 	OBSDataAutoRelease saveData = GenerateSaveData(sceneOrder, quickTrData, transitionDuration, transitionsData,
 						       scene, curProgramScene, savedProjectorList, savedCanvases);
 
@@ -933,7 +933,7 @@ void OBSBasic::Save(SceneCollection &collection)
 	int sceneCollectionVersion = collection.getVersion();
 	obs_data_set_int(saveData, "version", sceneCollectionVersion);
 
-	OBS::Rect migrationResolution = collection.getMigrationResolution();
+	FOV::Rect migrationResolution = collection.getMigrationResolution();
 	SceneCoordinateMode coordinateMode = collection.getCoordinateMode();
 
 	if (coordinateMode == SceneCoordinateMode::Absolute) {
@@ -1144,7 +1144,7 @@ void OBSBasic::LoadData(obs_data_t *data, SceneCollection &collection)
 	ClearSceneData();
 	ClearContextBar();
 
-	/* Exit OBS if clearing scene data failed for some reason. */
+	/* Exit FOV if clearing scene data failed for some reason. */
 	if (clearingFailed) {
 		OBSMessageBox::critical(this, QTStr("SourceLeak.Title"), QTStr("SourceLeak.Text"));
 		close();
@@ -1210,7 +1210,7 @@ void OBSBasic::LoadData(obs_data_t *data, SceneCollection &collection)
 	LoadAudioDevice(AUX_AUDIO_4, 6, data);
 
 	if (collection_canvases)
-		canvases = OBS::Canvas::LoadCanvases(collection_canvases);
+		canvases = FOV::Canvas::LoadCanvases(collection_canvases);
 
 	if (!sources) {
 		sources = std::move(groups);
@@ -1224,7 +1224,7 @@ void OBSBasic::LoadData(obs_data_t *data, SceneCollection &collection)
 	int64_t version = obs_data_get_int(data, "version");
 	OBSDataAutoRelease res = obs_data_get_obj(data, "resolution");
 
-	OBS::Rect collectionSize{};
+	FOV::Rect collectionSize{};
 
 	if (res) {
 		collectionSize.setWidth(obs_data_get_int(res, "x"));
@@ -1237,7 +1237,7 @@ void OBSBasic::LoadData(obs_data_t *data, SceneCollection &collection)
 
 		collection.setMigrationResolution(collectionSize);
 
-		OBS::Rect outputSize{ovi.base_width, ovi.base_height};
+		FOV::Rect outputSize{ovi.base_width, ovi.base_height};
 
 		if (outputSize != collectionSize) {
 			ovi.base_width = collectionSize.getWidth<uint32_t>();
@@ -1247,7 +1247,7 @@ void OBSBasic::LoadData(obs_data_t *data, SceneCollection &collection)
 			resetVideo = obs_reset_video(&ovi) == OBS_VIDEO_SUCCESS;
 
 			if (!resetVideo) {
-				collection.setCoordinateMode(OBS::SceneCoordinateMode::Absolute);
+				collection.setCoordinateMode(FOV::SceneCoordinateMode::Absolute);
 			}
 		}
 
@@ -1282,7 +1282,7 @@ void OBSBasic::LoadData(obs_data_t *data, SceneCollection &collection)
 	// The collection passed as function argument might be a copy generated via std::optional and thus
 	// might not represent the actual collection within the collection, meaning all changes would be lost after
 	// the function stack is unwound (i.e., the change would not be written into the scene collection file
-	// during OBS shutdown).
+	// during FOV shutdown).
 	// Explicitly updating the collection inside the container ensures the changes "stick".
 
 	collections[collection.getName()] = collection;
@@ -1478,7 +1478,7 @@ void OBSBasic::SaveProjectDeferred()
 	projectChanged = false;
 
 	try {
-		OBS::SceneCollection &currentCollection = GetCurrentSceneCollection();
+		FOV::SceneCollection &currentCollection = GetCurrentSceneCollection();
 
 		Save(currentCollection);
 	} catch (const std::invalid_argument &error) {
@@ -1586,7 +1586,7 @@ void OBSBasic::ClearSceneData()
 			     orphan_names.c_str());
 		}
 
-		/* We do not decrement disableSaving here to avoid OBS
+		/* We do not decrement disableSaving here to avoid FOV
 		 * overwriting user data with garbage. */
 		clearingFailed = true;
 	} else {
@@ -1603,7 +1603,7 @@ void OBSBasic::ShowMissingFilesDialog(obs_missing_files_t *files)
 		/* When loading the missing files dialog on launch, the
 		* window hasn't fully initialized by this point on macOS,
 		* so put this at the end of the current task queue. Fixes
-		* a bug where the window is behind OBS on startup. */
+		* a bug where the window is behind FOV on startup. */
 		QTimer::singleShot(0, [this, files] {
 			missDialog = new OBSMissingFiles(files, this);
 			missDialog->setAttribute(Qt::WA_DeleteOnClose, true);

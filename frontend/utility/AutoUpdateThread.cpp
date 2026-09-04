@@ -320,7 +320,7 @@ try {
 		throw strprintf("Can't launch updater '%s': %d", updateFilePath.Get(), GetLastError());
 	}
 
-	/* force OBS to perform another update check immediately after updating
+	/* force FOV to perform another update check immediately after updating
 	 * in case of issues with the new version */
 	config_set_int(App()->GetAppConfig(), "General", "LastUpdateCheck", 0);
 	config_set_string(App()->GetAppConfig(), "General", "SkipUpdateVersion", "0");

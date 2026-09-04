@@ -22,7 +22,7 @@
 
 #include <vector>
 
-namespace OBS {
+namespace FOV {
 
 using CrashFileEntry = std::pair<std::filesystem::path, std::filesystem::file_time_type>;
 
@@ -82,4 +82,4 @@ std::filesystem::path CrashHandler::getCrashLogDirectory() const
 
 	return crashLogDirectoryPath;
 }
-} // namespace OBS
+} // namespace FOV

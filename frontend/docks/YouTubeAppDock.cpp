@@ -18,13 +18,13 @@ extern bool cef_js_avail;
 static constexpr const char *YOUTUBE_WEBAPP_PLACEHOLDER_URL = YOUTUBE_WEBAPP_PLACEHOLDER;
 #else
 static constexpr const char *YOUTUBE_WEBAPP_PLACEHOLDER_URL =
-	"https://studio.youtube.com/live/channel/UC/console?kc=OBS";
+	"https://studio.youtube.com/live/channel/UC/console?kc=FOV";
 #endif
 
 #ifdef YOUTUBE_WEBAPP_ADDRESS
 static constexpr const char *YOUTUBE_WEBAPP_ADDRESS_URL = YOUTUBE_WEBAPP_ADDRESS;
 #else
-static constexpr const char *YOUTUBE_WEBAPP_ADDRESS_URL = "https://studio.youtube.com/live/channel/%1/console?kc=OBS";
+static constexpr const char *YOUTUBE_WEBAPP_ADDRESS_URL = "https://studio.youtube.com/live/channel/%1/console?kc=FOV";
 #endif
 
 static constexpr const char *BROADCAST_CREATED = "BROADCAST_CREATED";
@@ -369,7 +369,7 @@ void YouTubeAppDock::SetInitEvent(streaming_mode_t mode, const char *event, cons
 					%4 });
 		}
 	)""")
-				     .arg("OBS")
+				     .arg("FOV")
 				     .arg(version.c_str())
 				     .arg(mode == YTSM_ACCOUNT ? "'ACCOUNT'" : "'STREAM_KEY'")
 				     .arg(api_event)

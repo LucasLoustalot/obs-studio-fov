@@ -87,7 +87,7 @@ static blocked_module_t blocked_modules[] = {
 	// Dell / Alienware Backup & Recovery, crashes during "Browse" dialogs
 	{L"\\dbroverlayiconbackuped.dll", 0, 0, TS_IGNORE},
 
-	// RTSS, no good reason for this to be in OBS
+	// RTSS, no good reason for this to be in FOV
 	{L"\\rtsshooks.dll", 0, 0, TS_IGNORE},
 
 	// Dolby Axon overlay
@@ -129,7 +129,7 @@ static blocked_module_t blocked_modules[] = {
 	// Weird Polish banking "security" software, breaks UI
 	{L"\\wslbscr64.dll", 0, 0, TS_IGNORE},
 
-	// Various things hooking with EasyHook that probably shouldn't touch OBS
+	// Various things hooking with EasyHook that probably shouldn't touch FOV
 	{L"\\easyhook64.dll", 0, 0, TS_IGNORE},
 
 	// Ultramon

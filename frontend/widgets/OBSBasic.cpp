@@ -175,7 +175,7 @@ static void AddExtraModulePaths()
 }
 
 /* First-party modules considered to be potentially unsafe to load in Safe Mode
- * due to them allowing external code (e.g. scripts) to modify OBS's state. */
+ * due to them allowing external code (e.g. scripts) to modify FOV's state. */
 static const unordered_set<string> unsafe_modules = {
 	"frontend-tools", // Scripting
 	"obs-websocket",  // Allows outside modifications
@@ -431,7 +431,7 @@ OBSBasic::OBSBasic(QWidget *parent) : OBSMainWindow(parent), undo_s(ui), ui(new 
 	installEventFilter(shortcutFilter);
 
 	stringstream name;
-	name << "OBS " << App()->GetVersionString();
+	name << "FOV " << App()->GetVersionString();
 	blog(LOG_INFO, "%s", name.str().c_str());
 	blog(LOG_INFO, "---------------------------------");
 
@@ -1009,7 +1009,7 @@ void OBSBasic::OBSInit()
 #endif
 	struct obs_module_failure_info mfi;
 
-	// Safe Mode disables third-party plugins so we don't need to add each path outside the OBS bundle/installation.
+	// Safe Mode disables third-party plugins so we don't need to add each path outside the FOV bundle/installation.
 	if (safe_mode || disable_3p_plugins) {
 		SetSafeModuleNames();
 	} else {
@@ -1090,9 +1090,9 @@ void OBSBasic::OBSInit()
 		ProfileScope("OBSBasic::Load");
 		const std::string sceneCollectionName{
 			config_get_string(App()->GetUserConfig(), "Basic", "SceneCollection")};
-		std::optional<OBS::SceneCollection> configuredCollection =
+		std::optional<FOV::SceneCollection> configuredCollection =
 			GetSceneCollectionByName(sceneCollectionName);
-		std::optional<OBS::SceneCollection> foundCollection = GetSceneCollectionByName(opt_starting_collection);
+		std::optional<FOV::SceneCollection> foundCollection = GetSceneCollectionByName(opt_starting_collection);
 
 		if (foundCollection) {
 			ActivateSceneCollection(foundCollection.value());
@@ -1296,7 +1296,7 @@ void OBSBasic::OBSInit()
 #endif
 
 #ifdef __APPLE__
-	/* Remove OBS' Fullscreen Interface menu in favor of the one macOS adds by default */
+	/* Remove FOV' Fullscreen Interface menu in favor of the one macOS adds by default */
 	delete ui->actionFullscreenInterface;
 	ui->actionFullscreenInterface = nullptr;
 #else
@@ -1602,13 +1602,13 @@ int OBSBasic::ResetVideo()
 		OBSProjector::UpdateMultiviewProjectors();
 
 		if (!collections.empty()) {
-			const OBS::SceneCollection currentSceneCollection = OBSBasic::GetCurrentSceneCollection();
+			const FOV::SceneCollection currentSceneCollection = OBSBasic::GetCurrentSceneCollection();
 
 			bool usingAbsoluteCoordinates = currentSceneCollection.getCoordinateMode() ==
-							OBS::SceneCoordinateMode::Absolute;
-			OBS::Rect migrationResolution = currentSceneCollection.getMigrationResolution();
+							FOV::SceneCoordinateMode::Absolute;
+			FOV::Rect migrationResolution = currentSceneCollection.getMigrationResolution();
 
-			OBS::Rect videoResolution = OBS::Rect(ovi.base_width, ovi.base_height);
+			FOV::Rect videoResolution = FOV::Rect(ovi.base_width, ovi.base_height);
 
 			bool canMigrate = usingAbsoluteCoordinates ||
 					  (!migrationResolution.isZero() && migrationResolution != videoResolution);

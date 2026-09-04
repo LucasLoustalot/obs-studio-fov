@@ -29,7 +29,7 @@
 #include "moc_CrashHandler.cpp"
 
 using json = nlohmann::json;
-using CrashLogUpdateResult = OBS::CrashHandler::CrashLogUpdateResult;
+using CrashLogUpdateResult = FOV::CrashHandler::CrashLogUpdateResult;
 
 namespace {
 
@@ -69,32 +69,32 @@ std::string getCrashLogFileContent(std::filesystem::path crashLogFile)
 	return crashLogFileContent;
 }
 
-std::pair<OBS::TimePoint, std::string> buildCrashLogUploadContent(OBS::PlatformType platformType,
+std::pair<FOV::TimePoint, std::string> buildCrashLogUploadContent(FOV::PlatformType platformType,
 								  std::string crashLogFileContent)
 {
-	OBS::TimePoint uploadTimePoint = OBS::Clock::now();
-	std::time_t uploadTimePoint_c = OBS::Clock::to_time_t(uploadTimePoint);
+	FOV::TimePoint uploadTimePoint = FOV::Clock::now();
+	std::time_t uploadTimePoint_c = FOV::Clock::to_time_t(uploadTimePoint);
 	std::tm uploadTimeLocal = *std::localtime(&uploadTimePoint_c);
 
 	std::stringstream uploadLogMessage;
 
 	switch (platformType) {
-	case OBS::PlatformType::Windows:
-		uploadLogMessage << "OBS " << App()->GetVersionString(false) << " crash file uploaded at "
+	case FOV::PlatformType::Windows:
+		uploadLogMessage << "FOV " << App()->GetVersionString(false) << " crash file uploaded at "
 				 << std::put_time(&uploadTimeLocal, "%Y-%m-%d, %X") << "\n\n"
 				 << crashLogFileContent;
 		break;
-	case OBS::PlatformType::macOS:
+	case FOV::PlatformType::macOS:
 		uploadLogMessage << crashLogFileContent;
 	default:
 		break;
 	}
 
-	return std::pair<OBS::TimePoint, std::string>(uploadTimePoint, uploadLogMessage.str());
+	return std::pair<FOV::TimePoint, std::string>(uploadTimePoint, uploadLogMessage.str());
 }
 } // namespace
 
-namespace OBS {
+namespace FOV {
 
 static_assert(!crashSentinelPath.empty(), "Crash sentinel path name cannot be empty");
 static_assert(!crashSentinelPrefix.empty(), "Crash sentinel filename prefix cannot be empty");
@@ -256,8 +256,8 @@ void CrashHandler::updateCrashLogFromConfig()
 	int64_t lastCrashLogUploadTimestamp = config_get_int(appConfig, "CrashHandler", "last_crash_log_time");
 	std::string lastCrashLogUploadURL = last_crash_log_url ? last_crash_log_url : "";
 
-	OBS::Clock::duration durationSinceEpoch = std::chrono::seconds(lastCrashLogUploadTimestamp);
-	OBS::TimePoint lastCrashLogUploadTime = OBS::TimePoint(durationSinceEpoch);
+	FOV::Clock::duration durationSinceEpoch = std::chrono::seconds(lastCrashLogUploadTimestamp);
+	FOV::TimePoint lastCrashLogUploadTime = FOV::TimePoint(durationSinceEpoch);
 
 	lastCrashLogFile_ = std::filesystem::u8path(lastCrashLogFilePath);
 	lastCrashLogFileName_ = lastCrashLogFile_.filename().u8string();
@@ -273,7 +273,7 @@ void CrashHandler::saveCrashLogToConfig()
 		return;
 	}
 
-	std::time_t uploadTimePoint_c = OBS::Clock::to_time_t(lastCrashUploadTime_);
+	std::time_t uploadTimePoint_c = FOV::Clock::to_time_t(lastCrashUploadTime_);
 
 	config_set_string(appConfig, "CrashHandler", "last_crash_log_file", lastCrashLogFile_.u8string().c_str());
 	config_set_int(appConfig, "CrashHandler", "last_crash_log_time", uploadTimePoint_c);
@@ -389,4 +389,4 @@ void CrashHandler::applicationShutdownHandler() noexcept
 
 	isActiveCrashHandler_ = false;
 }
-} // namespace OBS
+} // namespace FOV

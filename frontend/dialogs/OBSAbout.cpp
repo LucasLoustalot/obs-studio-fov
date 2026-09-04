@@ -89,7 +89,7 @@ void OBSAbout::ShowAbout()
 	const Json::array &patrons = json.array_items();
 	QString text;
 
-	text += "<h1>OBS Top Patreon contributors:</h1>";
+	text += "<h1>FOV Top Patreon contributors:</h1>";
 	text += "<p style=\"font-size:16px;\">";
 	bool first = true;
 	bool top = true;

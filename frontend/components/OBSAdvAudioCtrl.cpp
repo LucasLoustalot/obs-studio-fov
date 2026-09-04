@@ -253,7 +253,7 @@ void OBSAdvAudioCtrl::ShowAudioControl(QGridLayout *layout)
 }
 
 /* ------------------------------------------------------------------------- */
-/* OBS source callbacks */
+/* FOV source callbacks */
 
 void OBSAdvAudioCtrl::OBSSourceActivated(void *param, calldata_t *)
 {

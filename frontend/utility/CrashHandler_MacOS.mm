@@ -37,7 +37,7 @@ namespace {
     }
 }  // namespace
 
-namespace OBS {
+namespace FOV {
     PlatformType CrashHandler::getPlatformType() const
     {
         return PlatformType::macOS;
@@ -74,7 +74,7 @@ namespace OBS {
             NSString *fileName = nil;
             [entry getResourceValue:&fileName forKey:NSURLNameKey error:nil];
 
-            if ([fileName hasPrefix:@"OBS"] && [fileName hasSuffix:@".ips"]) {
+            if ([fileName hasPrefix:@"FOV"] && [fileName hasSuffix:@".ips"]) {
                 [reportCandidates addObject:entry];
             }
         }
@@ -112,4 +112,4 @@ namespace OBS {
 
         return crashLogDirectoryPath;
     }
-}  // namespace OBS
+}  // namespace FOV

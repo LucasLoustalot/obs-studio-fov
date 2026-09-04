@@ -105,7 +105,7 @@ static inline void obs_frontend_canvas_list_free(struct obs_frontend_canvas_list
  * base char** pointer. */
 
 /* NOTE: User interface should not use typical Qt locale translation methods,
- * as the OBS UI bypasses it to use a custom translation implementation.  Use
+ * as the FOV UI bypasses it to use a custom translation implementation.  Use
  * standard module translation methods, obs_module_text.  For text in a Qt
  * window, use obs_frontend_push_ui_translation when the text is about to be
  * translated, and obs_frontend_pop_ui_translation when translation is

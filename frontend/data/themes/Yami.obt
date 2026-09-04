@@ -6,7 +6,7 @@
 }
 
 @OBSThemeVars {
-    /* OBS Color Palette */
+    /* FOV Color Palette */
     --blue1: #718CDC;
     --blue2: #476BD7;
     --blue3: #284CB8;

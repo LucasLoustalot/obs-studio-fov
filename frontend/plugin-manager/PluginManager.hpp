@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 
-namespace OBS {
+namespace FOV {
 
 struct ModuleInfo {
 	std::string display_name;
@@ -66,13 +66,13 @@ public:
 
 void addModuleToPluginManagerImpl(void *param, obs_module_t *newModule);
 
-}; // namespace OBS
+}; // namespace FOV
 
 // Anonymous namespace function to add module to plugin manager
 // via libobs's module enumeration.
 namespace {
 inline void addModuleToPluginManager(void *param, obs_module_t *newModule)
 {
-	OBS::addModuleToPluginManagerImpl(param, newModule);
+	FOV::addModuleToPluginManagerImpl(param, newModule);
 }
 } // namespace

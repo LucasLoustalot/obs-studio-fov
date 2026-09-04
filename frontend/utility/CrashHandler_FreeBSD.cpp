@@ -17,7 +17,7 @@
 
 #include "CrashHandler.hpp"
 
-namespace OBS {
+namespace FOV {
 
 PlatformType CrashHandler::getPlatformType() const
 {
@@ -37,4 +37,4 @@ std::filesystem::path CrashHandler::getCrashLogDirectory() const
 
 	return crashLogDirectoryPath;
 }
-} // namespace OBS
+} // namespace FOV

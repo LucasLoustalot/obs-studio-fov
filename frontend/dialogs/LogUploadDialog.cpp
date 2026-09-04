@@ -32,7 +32,7 @@ struct DialogPage {
 	static constexpr int Error = 2;
 };
 
-namespace OBS {
+namespace FOV {
 LogUploadDialog::LogUploadDialog(QWidget *parent, LogFileType uploadType)
 	: QDialog(parent),
 	  ui(new Ui::LogUploadDialog),
@@ -147,4 +147,4 @@ void LogUploadDialog::openAnalyzeURL() const
 
 	QDesktopServices::openUrl(analyzerUrl);
 }
-} // namespace OBS
+} // namespace FOV

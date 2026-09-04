@@ -883,19 +883,19 @@ OBSApp::OBSApp(int &argc, char **argv, profiler_name_store_t *store)
 	connect(qApp, &QGuiApplication::commitDataRequest, this, &OBSApp::commitData);
 #endif
 	if (multi) {
-		crashHandler_ = std::make_unique<OBS::CrashHandler>();
+		crashHandler_ = std::make_unique<FOV::CrashHandler>();
 	} else {
-		crashHandler_ = std::make_unique<OBS::CrashHandler>(appLaunchUUID_);
+		crashHandler_ = std::make_unique<FOV::CrashHandler>(appLaunchUUID_);
 	}
 
-	sleepInhibitor = os_inhibit_sleep_create("OBS Video/audio");
+	sleepInhibitor = os_inhibit_sleep_create("FOV Video/audio");
 
 #ifndef __APPLE__
 	setWindowIcon(QIcon::fromTheme("obs", QIcon(":/res/images/obs.png")));
 #endif
 
 	setDesktopFileName("com.obsproject.Studio");
-	pluginManager_ = std::make_unique<OBS::PluginManager>();
+	pluginManager_ = std::make_unique<FOV::PluginManager>();
 }
 
 OBSApp::~OBSApp()
@@ -1212,7 +1212,7 @@ bool OBSApp::OBSInit()
 #endif
 #ifdef _WIN32
 	bool hideFromCapture = config_get_bool(userConfig, "BasicWindow", "HideOBSWindowsFromCapture");
-	blog(LOG_INFO, "Hide OBS windows from screen capture: %s", hideFromCapture ? "true" : "false");
+	blog(LOG_INFO, "Hide FOV windows from screen capture: %s", hideFromCapture ? "true" : "false");
 #endif
 
 	blog(LOG_INFO, "Qt Version: %s (runtime), %s (compiled)", qVersion(), QT_VERSION_STR);
@@ -1237,13 +1237,13 @@ bool OBSApp::OBSInit()
 		[this](Qt::ApplicationState state) { ResetHotkeyState(state == Qt::ApplicationActive); });
 	ResetHotkeyState(applicationState() == Qt::ApplicationActive);
 
-	connect(crashHandler_.get(), &OBS::CrashHandler::crashLogUploadFailed, this,
+	connect(crashHandler_.get(), &FOV::CrashHandler::crashLogUploadFailed, this,
 		[this](const QString &errorMessage) {
-			emit this->logUploadFailed(OBS::LogFileType::CrashLog, errorMessage);
+			emit this->logUploadFailed(FOV::LogFileType::CrashLog, errorMessage);
 		});
 
-	connect(crashHandler_.get(), &OBS::CrashHandler::crashLogUploadFinished, this,
-		[this](const QString &fileUrl) { emit this->logUploadFinished(OBS::LogFileType::CrashLog, fileUrl); });
+	connect(crashHandler_.get(), &FOV::CrashHandler::crashLogUploadFinished, this,
+		[this](const QString &fileUrl) { emit this->logUploadFinished(FOV::LogFileType::CrashLog, fileUrl); });
 
 	return true;
 }
@@ -1341,14 +1341,14 @@ void OBSApp::uploadLastAppLog() const
 {
 	OBSBasic *basicWindow = static_cast<OBSBasic *>(GetMainWindow());
 
-	basicWindow->UploadLog("obs-studio/logs", GetLastLog(), OBS::LogFileType::LastAppLog);
+	basicWindow->UploadLog("obs-studio/logs", GetLastLog(), FOV::LogFileType::LastAppLog);
 }
 
 void OBSApp::uploadCurrentAppLog() const
 {
 	OBSBasic *basicWindow = static_cast<OBSBasic *>(GetMainWindow());
 
-	basicWindow->UploadLog("obs-studio/logs", GetCurrentLog(), OBS::LogFileType::CurrentAppLog);
+	basicWindow->UploadLog("obs-studio/logs", GetCurrentLog(), FOV::LogFileType::CurrentAppLog);
 }
 
 void OBSApp::uploadLastCrashLog()
@@ -1356,19 +1356,19 @@ void OBSApp::uploadLastCrashLog()
 	crashHandler_->uploadLastCrashLog();
 }
 
-OBS::LogFileState OBSApp::getLogFileState(OBS::LogFileType type) const
+FOV::LogFileState OBSApp::getLogFileState(FOV::LogFileType type) const
 {
 	switch (type) {
-	case OBS::LogFileType::CrashLog: {
+	case FOV::LogFileType::CrashLog: {
 		bool hasNewCrashLog = crashHandler_->hasNewCrashLog();
 
-		return (hasNewCrashLog) ? OBS::LogFileState::New : OBS::LogFileState::Uploaded;
+		return (hasNewCrashLog) ? FOV::LogFileState::New : FOV::LogFileState::Uploaded;
 	}
-	case OBS::LogFileType::CurrentAppLog:
-	case OBS::LogFileType::LastAppLog:
-		return OBS::LogFileState::New;
+	case FOV::LogFileType::CurrentAppLog:
+	case FOV::LogFileType::LastAppLog:
+		return FOV::LogFileState::New;
 	default:
-		return OBS::LogFileState::NoState;
+		return FOV::LogFileState::NoState;
 	}
 }
 

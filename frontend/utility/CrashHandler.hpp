@@ -28,7 +28,7 @@
 #include <chrono>
 #include <filesystem>
 
-namespace OBS {
+namespace FOV {
 
 enum class PlatformType { InvalidPlatform, Windows, macOS, Linux, FreeBSD };
 
@@ -94,4 +94,4 @@ signals:
 	void crashLogUploadFailed(const QString &errorMessage) const;
 	void crashLogUploadFinished(const QString &crashLogURL) const;
 };
-} // namespace OBS
+} // namespace FOV

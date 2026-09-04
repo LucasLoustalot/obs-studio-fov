@@ -44,13 +44,13 @@ public:
 
 	/**
      * @brief Add a new source to the FOVSystem and create its corresponding tracks.
-     * @param[in] source Pointer to the OBS source.
+     * @param[in] source Pointer to the FOV source.
      */
 	void addSource(obs_source_t *source);
 
 	/**
      * @brief Remove a source and its tracks from the FOVSystem.
-     * @param[in] source Pointer to the OBS source.
+     * @param[in] source Pointer to the FOV source.
      * @return true True on success.
      * @return false False if isInit is false, if source is null, or if the source is not found in the tracking deques.
      */
@@ -73,19 +73,19 @@ public:
 	/**
      * @brief Update settings and type for all active video encoders.
      * @param[in] encoderSettings Pointer to the settings data object.
-     * @param[in] encoderID Identifier string of the OBS encoder.
+     * @param[in] encoderID Identifier string of the FOV encoder.
      */
 	void updateVideoEncoderSettings(obs_data_t *encoderSettings, const std::string &encoderID = "obs_x264");
 
 	/**
      * @brief Update settings and type for all active audio encoders.
      * @param[in] encoderSettings Pointer to the settings data object.
-     * @param[in] encoderID Identifier string of the OBS encoder.
+     * @param[in] encoderID Identifier string of the FOV encoder.
      */
 	void updateAudioEncoderSettings(obs_data_t *encoderSettings, const std::string &encoderID = "ffmpeg_aac");
 
 	/**
-     * @brief Synchronize active sources by scanning all available OBS audio and video sources.
+     * @brief Synchronize active sources by scanning all available FOV audio and video sources.
      */
 	void syncSources();
 
@@ -95,19 +95,19 @@ protected:
      * @brief Manages an video track for the FOV System.
      */
 	struct VideoTrack {
-		std::string encoderID;           /**< Identifier string of the OBS encoder. */
+		std::string encoderID;           /**< Identifier string of the FOV encoder. */
 		video_t *videoContext = nullptr; /**< Pointer to the internal video render context. */
-		OBSSource source;                /**< OBS source. */
-		OBSView view;                    /**< Internal OBS view object. */
+		OBSSource source;                /**< FOV source. */
+		OBSView view;                    /**< Internal FOV view object. */
 		OBSEncoder encoder;              /**< Instantiated video encoder object. */
 		OBSData encoderSettings;         /**< Local encoder settings data object. */
-		struct obs_video_info ovi{0};    /**< OBS Video Info. */
+		struct obs_video_info ovi{0};    /**< FOV Video Info. */
 
 		/**
          * @brief Construct a new VideoTrack object.
-         * @param[in] rawSource Pointer to the OBS source.
+         * @param[in] rawSource Pointer to the FOV source.
          * @param[in] videoSettings Pointer to the settings data object.
-         * @param[in] encoderID Identifier string of the OBS encoder.
+         * @param[in] encoderID Identifier string of the FOV encoder.
          */
 		VideoTrack(obs_source_t *rawSource, obs_data_t *videoSettings, std::string encoderID);
 
@@ -123,8 +123,8 @@ protected:
 		void updateEncoderSettings(obs_data_t *videoSettings);
 
 		/**
-         * @brief Set the underlying OBS source for this video track.
-         * @param[in] source Pointer to the OBS source. Pass nullptr to unbind and clear the track.
+         * @brief Set the underlying FOV source for this video track.
+         * @param[in] source Pointer to the FOV source. Pass nullptr to unbind and clear the track.
          * @return true True on success.
          * @return false False if source is null, or if refreshVideoSettings fails during execution.
          */
@@ -139,7 +139,7 @@ protected:
 
 		/**
          * @brief Change the encoder type used for this video track.
-         * @param[in] encoderID Identifier string of the OBS encoder.
+         * @param[in] encoderID Identifier string of the FOV encoder.
          * @return true True on success.
          * @return false False if encoderID matches the current type, or if obs_video_encoder_create fails to instantiate the encoder.
          */
@@ -151,16 +151,16 @@ protected:
      * @brief Manages an independent audio processing pipeline.
      */
 	struct AudioTrack {
-		std::string encoderID;   /**< Identifier string of the OBS encoder. */
-		OBSSource source;        /**< OBS source. */
+		std::string encoderID;   /**< Identifier string of the FOV encoder. */
+		OBSSource source;        /**< FOV source. */
 		OBSEncoder encoder;      /**< Instantiated audio encoder object. */
 		OBSData encoderSettings; /**< Local encoder settings data object. */
 
 		/**
          * @brief Construct a new AudioTrack object.
-         * @param[in] rawSource Pointer to the OBS source.
+         * @param[in] rawSource Pointer to the FOV source.
          * @param[in] audioSettings Pointer to the settings data object.
-         * @param[in] encoderID Identifier string of the OBS encoder.
+         * @param[in] encoderID Identifier string of the FOV encoder.
          * @param[in] registeredMixes Count of already registered audio mixes. Used to programmatically assign the mixer ID bitmask.
          */
 		AudioTrack(obs_source_t *rawSource, obs_data_t *audioSettings, std::string encoderID,
@@ -178,8 +178,8 @@ protected:
 		void updateEncoderSettings(obs_data_t *audioSettings);
 
 		/**
-         * @brief Set the underlying OBS source for this audio track.
-         * @param[in] source Pointer to the OBS source. Pass nullptr to unbind and clear the track.
+         * @brief Set the underlying FOV source for this audio track.
+         * @param[in] source Pointer to the FOV source. Pass nullptr to unbind and clear the track.
          * @return true True on success.
          * @return false False if source is null.
          */
@@ -194,7 +194,7 @@ protected:
 
 		/**
          * @brief Change the encoder type used for this audio track.
-         * @param[in] encoderID Identifier string of the OBS encoder.
+         * @param[in] encoderID Identifier string of the FOV encoder.
          * @return true True on success.
          * @return false False if encoderID matches the current type, or if obs_audio_encoder_create fails to instantiate the encoder.
          */
@@ -246,7 +246,7 @@ private:
 
 /**
  * @brief Check if the active service is a valid FOV service instance.
- * @param[in] service Pointer to the OBS service object.
+ * @param[in] service Pointer to the FOV service object.
  * @return true True if the service identifier matches the FOV service signature.
  * @return false False if service is null, or if the identifier does not match.
  */

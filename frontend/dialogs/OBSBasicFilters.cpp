@@ -616,7 +616,7 @@ bool OBSBasicFilters::nativeEvent(const QByteArray &, void *message, qintptr *)
 	return false;
 }
 
-/* OBS Signals */
+/* FOV Signals */
 
 void OBSBasicFilters::OBSSourceFilterAdded(void *param, calldata_t *data)
 {

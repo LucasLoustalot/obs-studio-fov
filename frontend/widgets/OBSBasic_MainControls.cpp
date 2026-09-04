@@ -65,8 +65,8 @@ extern QCef *cef;
 extern QCefCookieManager *panel_cookies;
 
 using namespace std;
-using LogUploadDialog = OBS::LogUploadDialog;
-using LogUploadType = OBS::LogFileType;
+using LogUploadDialog = FOV::LogUploadDialog;
+using LogUploadType = FOV::LogFileType;
 
 void OBSBasic::CreateInteractionWindow(obs_source_t *source)
 {
@@ -274,7 +274,7 @@ void OBSBasic::UploadLog(const char *subdir, const char *file, const LogUploadTy
 	ui->menuLogFiles->setEnabled(false);
 
 	stringstream ss;
-	ss << "OBS " << App()->GetVersionString(false) << " log file uploaded at " << CurrentDateTimeString() << "\n\n"
+	ss << "FOV " << App()->GetVersionString(false) << " log file uploaded at " << CurrentDateTimeString() << "\n\n"
 	   << fileString;
 
 	if (logUploadThread) {

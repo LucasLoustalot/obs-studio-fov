@@ -29,7 +29,7 @@
 
 #include "moc_PluginManagerWindow.cpp"
 
-namespace OBS {
+namespace FOV {
 
 PluginManagerWindow::PluginManagerWindow(std::vector<ModuleInfo> const &modules, QWidget *parent)
 	: QDialog(parent),
@@ -147,4 +147,4 @@ bool PluginManagerWindow::isEnabledPluginsChanged()
 	return result;
 }
 
-}; // namespace OBS
+}; // namespace FOV

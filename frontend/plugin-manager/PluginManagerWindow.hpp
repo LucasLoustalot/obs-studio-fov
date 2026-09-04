@@ -23,7 +23,7 @@
 #include <QDialog>
 #include <QWidget>
 
-namespace OBS {
+namespace FOV {
 
 class PluginManagerWindow : public QDialog {
 	Q_OBJECT
@@ -43,4 +43,4 @@ private:
 	bool isEnabledPluginsChanged();
 };
 
-}; // namespace OBS
+}; // namespace FOV

@@ -286,7 +286,7 @@ void AutoConfigStreamPage::OnOAuthStreamKeyConnected()
 
 				/* Create throwaway stream key for bandwidth test */
 				if (ui->doBandwidthTest->isChecked()) {
-					StreamDescription stream = {"", "", "OBS Studio Test Stream"};
+					StreamDescription stream = {"", "", "FOV Studio Test Stream"};
 					if (ytAuth->InsertStream(stream)) {
 						ui->key->setText(stream.name);
 					}
@@ -570,7 +570,7 @@ void AutoConfigStreamPage::UpdateKeyLink()
 	streamKeyLink = obs_data_get_string(settings, "stream_key_link");
 
 	if (customServer.contains("fbcdn.net") && IsCustomService()) {
-		streamKeyLink = "https://www.facebook.com/live/producer?ref=OBS";
+		streamKeyLink = "https://www.facebook.com/live/producer?ref=FOV";
 	}
 
 	if (serviceName == "Dacast") {

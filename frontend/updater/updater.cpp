@@ -362,7 +362,7 @@ bool DownloadWorkerThread()
 
 	const DWORD compressionFlags = WINHTTP_DECOMPRESSION_FLAG_ALL;
 
-	HttpHandle hSession = WinHttpOpen(L"OBS Studio Updater/3.0", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
+	HttpHandle hSession = WinHttpOpen(L"FOV Studio Updater/3.0", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
 					  WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
 	if (!hSession) {
 		downloadThreadFailure = true;
@@ -1085,7 +1085,7 @@ static bool UpdateVSRedists()
 
 	const DWORD compressionFlags = WINHTTP_DECOMPRESSION_FLAG_ALL;
 
-	HttpHandle hSession = WinHttpOpen(L"OBS Studio Updater/3.0", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
+	HttpHandle hSession = WinHttpOpen(L"FOV Studio Updater/3.0", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
 					  WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
 	if (!hSession) {
 		Status(L"VC Redist Update failed: Couldn't create session");
@@ -1189,7 +1189,7 @@ static bool UpdateVSRedists()
 
 static void UpdateRegistryVersion(const Manifest &manifest)
 {
-	const char *regKey = R"(Software\Microsoft\Windows\CurrentVersion\Uninstall\OBS Studio)";
+	const char *regKey = R"(Software\Microsoft\Windows\CurrentVersion\Uninstall\FOV Studio)";
 	LSTATUS res;
 	HKEY key;
 	char version[32];
@@ -1229,7 +1229,7 @@ extern "C" void UpdateHookFiles(void);
 static bool Update(wchar_t *cmdLine)
 {
 	/* ------------------------------------- *
-	 * Check to make sure OBS isn't running  */
+	 * Check to make sure FOV isn't running  */
 
 	HANDLE hObsUpdateMutex = OpenMutexW(SYNCHRONIZE, false, L"OBSStudioUpdateMutex");
 	if (hObsUpdateMutex) {
@@ -1286,7 +1286,7 @@ static bool Update(wchar_t *cmdLine)
 		if (argv) {
 			for (int i = 0; i < argc; i++) {
 				if (wcscmp(argv[i], L"Portable") == 0) {
-					// Legacy OBS
+					// Legacy FOV
 					bIsPortable = true;
 					break;
 				} else if (wcsncmp(argv[i], L"--branch=", 9) == 0) {
@@ -1407,7 +1407,7 @@ static bool Update(wchar_t *cmdLine)
 
 	if (updates.empty()) {
 		Status(L"All available updates are already installed.");
-		SetDlgItemText(hwndMain, IDC_BUTTON, L"Launch OBS");
+		SetDlgItemText(hwndMain, IDC_BUTTON, L"Launch FOV");
 		return true;
 	}
 
@@ -1632,7 +1632,7 @@ static bool Update(wchar_t *cmdLine)
 	SendDlgItemMessage(hwndMain, IDC_PROGRESS, PBM_SETPOS, 100, 0);
 
 	Status(L"Update complete.");
-	SetDlgItemText(hwndMain, IDC_BUTTON, L"Launch OBS");
+	SetDlgItemText(hwndMain, IDC_BUTTON, L"Launch FOV");
 	return true;
 }
 
@@ -1823,7 +1823,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
 
 	if (!IsWindows10OrGreater()) {
 		MessageBox(nullptr,
-			   L"OBS Studio 28 and newer no longer support Windows 7,"
+			   L"FOV Studio 28 and newer no longer support Windows 7,"
 			   L" Windows 8, or Windows 8.1. You can disable the"
 			   L" following setting to opt out of future updates:"
 			   L" Settings → General → General → Automatically check"
@@ -1836,14 +1836,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
 
 		WinHandle hMutex = OpenMutex(SYNCHRONIZE, false, L"OBSUpdaterRunningAsNonAdminUser");
 		if (hMutex) {
-			MessageBox(nullptr, L"OBS Studio Updater must be run as an administrator.", L"Updater Error",
+			MessageBox(nullptr, L"FOV Studio Updater must be run as an administrator.", L"Updater Error",
 				   MB_ICONWARNING);
 			return 2;
 		}
 
 		HANDLE hLowMutex = CreateMutexW(nullptr, true, L"OBSUpdaterRunningAsNonAdminUser");
 
-		/* return code 1 =  user wanted to launch OBS */
+		/* return code 1 =  user wanted to launch FOV */
 		if (RestartAsAdmin(lpCmdLine, cwd) == 1) {
 			StringCbCat(cwd, sizeof(cwd), L"\\..\\..");
 			GetFullPathName(cwd, _countof(obs_base_directory), obs_base_directory, nullptr);

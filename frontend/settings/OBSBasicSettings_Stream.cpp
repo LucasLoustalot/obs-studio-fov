@@ -423,7 +423,7 @@ void OBSBasicSettings::UpdateKeyLink()
 	streamKeyLink = obs_data_get_string(settings, "stream_key_link");
 
 	if (customServer.contains("fbcdn.net") && IsCustomService()) {
-		streamKeyLink = "https://www.facebook.com/live/producer?ref=OBS";
+		streamKeyLink = "https://www.facebook.com/live/producer?ref=FOV";
 	}
 
 	if (serviceName == "Dacast") {
