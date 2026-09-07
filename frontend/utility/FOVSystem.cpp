@@ -304,7 +304,7 @@ FOVSystem::AudioTrack::AudioTrack(obs_source_t *rawSource, obs_data_t *audioSett
 		mixerIndex = GetFirstMixerIndex(mixerMask);
 	} else {
 		obs_source_set_audio_mixers(rawSource, 1 << registeredMixes);
-		mixerIndex = (size_t)registeredMixes + 1;
+		mixerIndex = (size_t)registeredMixes;
 	}
 
 	encoder = obs_audio_encoder_create(encoderID.c_str(), encoderName.c_str(), audioSettings, mixerIndex, nullptr);
