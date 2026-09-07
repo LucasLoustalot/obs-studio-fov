@@ -17,7 +17,7 @@ cmake --build .
 read -p "Run OBS now ? [y/N]: " -n 1 -r
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
-./rundir/RelWithDebInfo/bin/obs --portable
+./rundir/Debug/bin/obs --portable
 else
 exit 0
 fi

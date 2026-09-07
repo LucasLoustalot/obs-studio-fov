@@ -14,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Build
+      - name: Build (Debug)
         run: ./.github/scripts/FOV/build_linux.sh
 
       - name: Upload Full Build Directory for Analyzer
@@ -23,10 +23,21 @@ jobs:
           name: linux-build-folder
           path: build/
 
-      - name: Upload Linux Artifact
+      - name: Upload Linux Artifact (Debug)
         uses: actions/upload-artifact@v5
         with:
-          name: obs-fov-linux
+          name: FOV-linux-x64-debug
+          path: build/rundir/
+
+      - name: Build Release
+        if: github.ref_name == 'dev' || github.ref_name == 'master'
+        run: ./.github/scripts/FOV/build_linux_release.sh
+
+      - name: Upload Linux Release Artifact
+        if: github.ref_name == 'dev' || github.ref_name == 'master'
+        uses: actions/upload-artifact@v5
+        with:
+          name: FOV-linux-x64-release
           path: build/rundir/
 
   check_program_compilation_windows:
@@ -38,13 +49,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Build
+      - name: Build (Debug)
         run: ./.github/scripts/FOV/build_windows.ps1
 
-      - name: Upload Windows Artifact
+      - name: Upload Windows Artifact (Debug)
         uses: actions/upload-artifact@v5
         with:
-          name: obs-fov-windows
+          name: FOV-windows-x64-debug
+          path: build_x64/rundir
+
+      - name: Build Release
+        if: github.ref_name == 'dev' || github.ref_name == 'master'
+        run: ./.github/scripts/FOV/build_windows_release.ps1
+
+      - name: Upload Windows Release Artifact
+        if: github.ref_name == 'dev' || github.ref_name == 'master'
+        uses: actions/upload-artifact@v5
+        with:
+          name: FOV-windows-x64-release
           path: build_x64/rundir
 
   check_program_compilation_macos:
@@ -56,8 +78,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Build
+      - name: Build (Debug)
         run: ./.github/scripts/FOV/build_macos.sh
+
+      - name: Upload macOS Artifact (Debug)
+        uses: actions/upload-artifact@v5
+        with:
+          name: FOV-macos-arm64-debug
+          path: build/rundir/
+
+      - name: Build Release
+        if: github.ref_name == 'dev' || github.ref_name == 'master'
+        run: ./.github/scripts/FOV/build_macos_release.sh
+
+      - name: Upload macOS Release Artifact
+        if: github.ref_name == 'dev' || github.ref_name == 'master'
+        uses: actions/upload-artifact@v5
+        with:
+          name: FOV-macos-arm64-release
+          path: build/rundir/
 
   code_analyzer:
     name: Code analyzer cppcheck
