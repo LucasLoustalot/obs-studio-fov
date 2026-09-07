@@ -614,7 +614,9 @@ void FOVSystem::syncSources()
 				validSources.insert(source);
 		}
 		if (flags & OBS_SOURCE_AUDIO) {
-			validSources.insert(source);
+			if (obs_source_active(source)) {
+				validSources.insert(source);
+			}
 		}
 	}
 
