@@ -91,7 +91,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: FOV-macos-arm64-debug
-          path: build/rundir/
+          path: build_macos/rundir/
 
       - name: Build Release
         if: github.ref_name == 'dev' || github.ref_name == 'master'
@@ -102,7 +102,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: FOV-macos-arm64-release
-          path: build/rundir/
+          path: build_macos/rundir/
 
   code_analyzer:
     name: Code analyzer cppcheck
