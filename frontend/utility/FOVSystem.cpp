@@ -613,13 +613,7 @@ void FOVSystem::syncSources()
 	}
 
 	for (obs_source_t *source : validSources) {
-		if (obs_source_get_output_flags(source) & OBS_SOURCE_VIDEO) {
-			videoTracks.emplace_back(std::make_unique<VideoTrack>(source, videoSettings, videoEncoderID));
-		}
-		if (obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO) {
-			audioTracks.emplace_back(std::make_unique<AudioTrack>(source, audioSettings, audioEncoderID,
-									      (int)audioTracks.size()));
-		}
+		this->addSource(source);
 	}
 
 	updateEncoderGroup();
