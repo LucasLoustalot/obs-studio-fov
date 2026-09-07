@@ -328,10 +328,13 @@ FOVSystem::FOVSystem()
 	  audioSettings(obs_data_create()),
 	  encoderGroup(obs_encoder_group_create())
 {
-	return;
 }
 
-FOVSystem::~FOVSystem() {}
+FOVSystem::~FOVSystem()
+{
+	obs_data_release(videoSettings);
+	obs_data_release(audioSettings);
+}
 
 /**
  * @brief Initialize the FOVSystem with a specific muxer output and default settings.
@@ -364,11 +367,9 @@ void FOVSystem::initSystem(obs_output_t *ffmpegMpegtsMuxerOutput, obs_data_t *vi
  */
 void FOVSystem::addSource(obs_source_t *source)
 {
-	if (!isInit)
+	if (!isInit || source == nullptr)
 		return;
-	if (source == nullptr) {
-		return;
-	}
+
 	if (obs_source_get_output_flags(source) & OBS_SOURCE_VIDEO) {
 		videoTracks.emplace_back(std::make_unique<VideoTrack>(source, videoSettings, videoEncoderID));
 	}
@@ -388,17 +389,14 @@ void FOVSystem::addSource(obs_source_t *source)
  */
 bool FOVSystem::removeSource(obs_source_t *source)
 {
-	if (!isInit)
+	if (!isInit || source == nullptr)
 		return false;
-	bool found = false;
 
-	if (source == nullptr) {
-		return false;
-	}
+	bool found = false;
 
 	if (obs_source_get_output_flags(source) & OBS_SOURCE_VIDEO) {
 		for (size_t i = 0; i < videoTracks.size(); i++) {
-			if (videoTracks[i].get()->source == source) {
+			if (videoTracks[i]->source == source) {
 				videoTracks.erase(videoTracks.begin() + i);
 				found = true;
 				break;
@@ -408,7 +406,7 @@ bool FOVSystem::removeSource(obs_source_t *source)
 
 	if (obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO) {
 		for (size_t i = 0; i < audioTracks.size(); i++) {
-			if (audioTracks[i].get()->source == source) {
+			if (audioTracks[i]->source == source) {
 				audioTracks.erase(audioTracks.begin() + i);
 				found = true;
 				break;
@@ -448,10 +446,10 @@ void FOVSystem::updateVideoEncoderSettings(obs_data_t *encoderSettings, const st
 	obs_data_apply(this->videoSettings, encoderSettings);
 	for (auto &i : videoTracks) {
 		if (encoderID != this->videoEncoderID) {
-			i.get()->changeEncoderType(encoderID);
+			i->changeEncoderType(encoderID);
 		}
-		i.get()->updateEncoderSettings(encoderSettings);
-		i.get()->refreshVideoSettings();
+		i->updateEncoderSettings(encoderSettings);
+		i->refreshVideoSettings();
 	}
 	this->videoEncoderID = encoderID;
 
@@ -479,10 +477,10 @@ void FOVSystem::updateAudioEncoderSettings(obs_data_t *encoderSettings, const st
 	obs_data_apply(this->audioSettings, encoderSettings);
 	for (auto &i : audioTracks) {
 		if (encoderID != this->audioEncoderID) {
-			i.get()->changeEncoderType(encoderID);
+			i->changeEncoderType(encoderID);
 		}
-		i.get()->updateEncoderSettings(encoderSettings);
-		i.get()->refreshAudioSettings();
+		i->updateEncoderSettings(encoderSettings);
+		i->refreshAudioSettings();
 	}
 	this->audioEncoderID = encoderID;
 
@@ -505,7 +503,7 @@ void FOVSystem::updateEncoderGroup()
 		return;
 
 	size_t i = 0;
-	obs_encoder_group_t *newGroup = obs_encoder_group_create();
+	OBSEncoderGroup newGroup = obs_encoder_group_create();
 
 	if (ffmpegMpegtsMuxerOutput != nullptr) {
 		obs_output_set_video_encoder(ffmpegMpegtsMuxerOutput, nullptr);
@@ -538,7 +536,7 @@ void FOVSystem::updateEncoderGroup()
 		}
 	}
 
-	encoderGroup = newGroup;
+	encoderGroup = std::move(newGroup);
 }
 
 /**
@@ -567,7 +565,7 @@ void FOVSystem::updateServiceTracks()
 	for (const auto &track : videoTracks) {
 		if (track && track->source) {
 			const char *sourceName = obs_source_get_name(track->source);
-			OBSData item = obs_data_create();
+			OBSDataAutoRelease item = obs_data_create();
 			obs_data_set_string(item, "name", sourceName ? sourceName : "");
 			obs_data_array_push_back(videoArray, item);
 		}
@@ -578,7 +576,7 @@ void FOVSystem::updateServiceTracks()
 	for (const auto &track : audioTracks) {
 		if (track && track->source) {
 			const char *sourceName = obs_source_get_name(track->source);
-			OBSData item = obs_data_create();
+			OBSDataAutoRelease item = obs_data_create();
 			obs_data_set_string(item, "name", sourceName ? sourceName : "");
 			obs_data_array_push_back(audioArray, item);
 		}
