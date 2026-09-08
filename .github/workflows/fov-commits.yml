@@ -8,7 +8,7 @@ on:
 jobs:
   lint_commit:
     name: Check commit standard
-    runs-on: [ linux, x64 ]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5

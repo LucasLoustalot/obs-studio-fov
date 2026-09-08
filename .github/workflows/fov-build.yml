@@ -5,6 +5,13 @@ on:
     branches-ignore:
       - "ga-ignore-*"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IS_RELEASE_BRANCH: ${{ github.ref_name == 'dev' || github.ref_name == 'master' }}
+
 jobs:
   check_program_compilation_linux:
     name: FOV - Build on Linux
@@ -12,52 +19,122 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
-      - name: Build
+      - name: Build (Debug)
         run: ./.github/scripts/FOV/build_linux.sh
 
       - name: Upload Full Build Directory for Analyzer
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: linux-build-folder
           path: build/
+          retention-days: 1
 
-      - name: Upload Linux Artifact
-        uses: actions/upload-artifact@v5
+      - name: Upload Linux Artifact (Debug)
+        uses: actions/upload-artifact@v7
         with:
-          name: obs-fov-linux
+          name: FOV-linux-x64-debug
           path: build/rundir/
 
   check_program_compilation_windows:
     name: FOV - Build on Windows
     runs-on: [ self-hosted, windows, x64 ]
-
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
-      - name: Build
+      - name: Build (Debug)
+        shell: powershell
         run: ./.github/scripts/FOV/build_windows.ps1
 
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v5
+      - name: Upload Windows Artifact (Debug)
+        uses: actions/upload-artifact@v7
         with:
-          name: obs-fov-windows
+          name: FOV-windows-x64-debug
+          path: build_x64/rundir
+
+      - name: Build Release
+        if: env.IS_RELEASE_BRANCH == 'true'
+        shell: powershell
+        run: ./.github/scripts/FOV/build_windows_release.ps1
+
+      - name: Upload Windows Release Artifact
+        if: env.IS_RELEASE_BRANCH == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: FOV-windows-x64-release
           path: build_x64/rundir
 
   check_program_compilation_macos:
     name: FOV - Build on macOS
     runs-on: macos-15
-
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
-      - name: Build
+      - name: Build (Debug)
         run: ./.github/scripts/FOV/build_macos.sh
+
+      - name: Package Debug DMG
+        run: ./.github/scripts/FOV/package_dmg.sh build_macos FOV-macos-arm64-debug.dmg
+
+      - name: Upload macOS Debug Artifact (DMG)
+        uses: actions/upload-artifact@v7
+        with:
+          name: FOV-macos-arm64-debug-dmg
+          path: FOV-macos-arm64-debug.dmg
+
+      - name: Build Release
+        if: env.IS_RELEASE_BRANCH == 'true'
+        run: ./.github/scripts/FOV/build_macos_release.sh
+
+      - name: Package Release DMG
+        if: env.IS_RELEASE_BRANCH == 'true'
+        run: ./.github/scripts/FOV/package_dmg.sh build_macos FOV-macos-arm64-release.dmg
+
+      - name: Upload macOS Release Artifact (DMG)
+        if: env.IS_RELEASE_BRANCH == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: FOV-macos-arm64-release-dmg
+          path: FOV-macos-arm64-release.dmg
+
+  flatpak_build:
+    name: FOV - Build Flatpak
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'dev' || github.ref_name == 'master'
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
+      options: --privileged
+    timeout-minutes: 80
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Build Flatpak Bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: build-aux/com.obsproject.Studio.json
+          bundle: FOV-x86_64.flatpak
+          branch: ${{ github.ref_name }}
+
+      - name: Upload Flatpak Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: FOV-linux-x64-flatpak-release
+          path: FOV-x86_64.flatpak
 
   code_analyzer:
     name: Code analyzer cppcheck
@@ -66,12 +143,12 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
-          submodules: true
+          submodules: recursive
 
       - name: Download Linux Build Folder
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: linux-build-folder
           path: build/
@@ -84,7 +161,7 @@ jobs:
         run: ./.github/scripts/FOV/cppcheck_publisher.sh
 
       - name: Upload cppcheck artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: cppcheck
           path: check.txt

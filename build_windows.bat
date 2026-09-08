@@ -1,0 +1,1 @@
+PowerShell -NoProfile -ExecutionPolicy Bypass -File .\.github\scripts\FOV\build_windows.ps1
