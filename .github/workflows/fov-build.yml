@@ -39,17 +39,6 @@ jobs:
           name: FOV-linux-x64-debug
           path: build/rundir/
 
-      - name: Build Release
-        if: env.IS_RELEASE_BRANCH == 'true'
-        run: ./.github/scripts/FOV/build_linux_release.sh
-
-      - name: Upload Linux Release Artifact
-        if: env.IS_RELEASE_BRANCH == 'true'
-        uses: actions/upload-artifact@v7
-        with:
-          name: FOV-linux-x64-release
-          path: build/rundir/
-
   check_program_compilation_windows:
     name: FOV - Build on Windows
     runs-on: [ self-hosted, windows, x64 ]
@@ -122,10 +111,11 @@ jobs:
   flatpak_build:
     name: FOV - Build Flatpak
     runs-on: ubuntu-latest
+    if: github.ref_name == 'dev' || github.ref_name == 'master'
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
       options: --privileged
-    timeout-minutes: 35
+    timeout-minutes: 80
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -143,7 +133,7 @@ jobs:
       - name: Upload Flatpak Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: FOV-linux-x64-flatpak
+          name: FOV-linux-x64-flatpak-release
           path: FOV-x86_64.flatpak
 
   code_analyzer:
