@@ -42,13 +42,13 @@ Q_DECLARE_METATYPE(VoidFunc)
 class QFileSystemWatcher;
 class QSocketNotifier;
 
-namespace OBS {
+namespace FOV {
 class CrashHandler;
 
 enum class LogFileType { NoType, CurrentAppLog, LastAppLog, CrashLog };
 enum class LogFileState { NoState, New, Uploaded };
 class PluginManager;
-} // namespace OBS
+} // namespace FOV
 
 struct UpdateBranch {
 	QString name;
@@ -63,7 +63,7 @@ class OBSApp : public QApplication {
 
 private:
 	QUuid appLaunchUUID_;
-	std::unique_ptr<OBS::CrashHandler> crashHandler_;
+	std::unique_ptr<FOV::CrashHandler> crashHandler_;
 
 	std::string locale;
 
@@ -85,7 +85,7 @@ private:
 
 	std::deque<obs_frontend_translate_ui_cb> translatorHooks;
 
-	std::unique_ptr<OBS::PluginManager> pluginManager_;
+	std::unique_ptr<FOV::PluginManager> pluginManager_;
 
 	bool UpdatePre22MultiviewLayout(const char *layout);
 
@@ -177,7 +177,7 @@ public:
 	void uploadCurrentAppLog() const;
 	void uploadLastCrashLog();
 
-	OBS::LogFileState getLogFileState(OBS::LogFileType type) const;
+	FOV::LogFileState getLogFileState(FOV::LogFileType type) const;
 
 	std::string GetVersionString(bool platform = true) const;
 	bool IsPortableMode();
@@ -227,8 +227,8 @@ signals:
 	void logLineAdded(int logLevel, const QString &message);
 	void StyleChanged();
 
-	void logUploadFinished(OBS::LogFileType, const QString &fileUrl);
-	void logUploadFailed(OBS::LogFileType, const QString &errorMessage);
+	void logUploadFinished(FOV::LogFileType, const QString &fileUrl);
+	void logUploadFailed(FOV::LogFileType, const QString &errorMessage);
 };
 
 int GetAppConfigPath(char *path, size_t size, const char *name);

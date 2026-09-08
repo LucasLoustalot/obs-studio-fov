@@ -25,7 +25,7 @@ struct drm_card_info {
 	 * the tokenized GPU identification string and
 	 * the device_name and vendor_name supplied by
 	 * libpci. It is used to associate the GPU that
-	 * OBS is using and the cards found in a bus scan
+	 * FOV is using and the cards found in a bus scan
 	 * using libpci.
 	 */
 	uint16_t match_count;
@@ -407,12 +407,12 @@ void get_drm_cards(std::vector<drm_card_info> &cards)
  *
  * When a single GPU is installed the case is trivial. In systems
  * with multiple GPUs (including the CPU iGPU), the GPU that
- * OBS is currently using must be placed first in the list, so
+ * FOV is currently using must be placed first in the list, so
  * that composition_gpu_index=0 is valid. composition_gpu_index
  * is set to to ovi.adapter which is always 0 apparently.
  *
  * system_gpu_data() does the following:
- *   1. Gather information about the GPU being used by OBS
+ *   1. Gather information about the GPU being used by FOV
  *   2. Scan the PCIe bus to identify all GPUs
  *   3. Find a best match of the GPU in-use in the list found in 2
  *   4. Generate the sorted list of GoLiveAPI::Gpu entries

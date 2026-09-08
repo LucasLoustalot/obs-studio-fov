@@ -216,7 +216,7 @@ void OBSBasicStats::closeEvent(QCloseEvent *event)
 	}
 
 	// This code is only reached when the non-dockable stats window is
-	// manually closed or OBS is exiting.
+	// manually closed or FOV is exiting.
 	obs_frontend_remove_event_callback(OBSFrontendEvent, this);
 
 	QWidget::closeEvent(event);

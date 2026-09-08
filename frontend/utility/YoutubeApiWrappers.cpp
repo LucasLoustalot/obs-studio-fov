@@ -281,7 +281,7 @@ bool YoutubeApiWrappers::GetVideoCategoriesList(QVector<CategoryDescription> &ca
 								      "&regionCode=%1"
 								      "&hl=%2";
 	/*
-	 * All OBS locale regions aside from "US" are missing category id 29
+	 * All FOV locale regions aside from "US" are missing category id 29
 	 * ("Nonprofits & Activism"), but it is still available to channels
 	 * set to those regions via the YouTube Studio website.
 	 * To work around this inconsistency with the API all locales will

@@ -31,11 +31,11 @@
 
 extern bool restart;
 
-namespace OBS {
+namespace FOV {
 
 void addModuleToPluginManagerImpl(void *param, obs_module_t *newModule)
 {
-	auto &instance = *static_cast<OBS::PluginManager *>(param);
+	auto &instance = *static_cast<FOV::PluginManager *>(param);
 	std::string moduleName = obs_get_module_file_name(newModule);
 	moduleName = moduleName.substr(0, moduleName.rfind("."));
 
@@ -48,7 +48,7 @@ void addModuleToPluginManagerImpl(void *param, obs_module_t *newModule)
 	const char *version = obs_get_module_version(newModule);
 
 	auto it = std::find_if(instance.modules_.begin(), instance.modules_.end(),
-			       [&](OBS::ModuleInfo module) { return module.module_name == moduleName; });
+			       [&](FOV::ModuleInfo module) { return module.module_name == moduleName; });
 
 	if (it == instance.modules_.end()) {
 		instance.modules_.push_back({display_name ? display_name : "", module_name, id ? id : "",
@@ -308,4 +308,4 @@ void PluginManager::open()
 	}
 }
 
-}; // namespace OBS
+}; // namespace FOV

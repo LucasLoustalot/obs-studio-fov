@@ -25,7 +25,7 @@
 
 class QTimer;
 
-namespace OBS {
+namespace FOV {
 
 enum class LogFileType;
 
@@ -49,4 +49,4 @@ private slots:
 	void copyToClipBoard() const;
 	void openAnalyzeURL() const;
 };
-} // namespace OBS
+} // namespace FOV

@@ -36,7 +36,7 @@ template<typename numberType> inline double safeConvertToDouble(numberType numbe
 }
 } // namespace
 
-namespace OBS {
+namespace FOV {
 
 struct Rect {
 	double width_ = 0.0;
@@ -95,4 +95,4 @@ struct Rect {
 	friend bool operator==(const Rect &lhs, const Rect &rhs);
 	friend bool operator!=(const Rect &lhs, const Rect &rhs);
 };
-} // namespace OBS
+} // namespace FOV

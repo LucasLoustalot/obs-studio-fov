@@ -10,7 +10,7 @@ bool captions_handler::reset_resampler(enum audio_format format, uint32_t sample
 try {
 	obs_audio_info ai;
 	if (!obs_get_audio_info(&ai))
-		throw std::string("Failed to get OBS audio info");
+		throw std::string("Failed to get FOV audio info");
 
 	resample_info src = {ai.samples_per_sec, AUDIO_FORMAT_FLOAT_PLANAR, ai.speakers};
 	resample_info dst = {sample_rate, format, SPEAKERS_MONO};

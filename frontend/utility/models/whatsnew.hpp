@@ -49,7 +49,7 @@ struct WhatsNewPlatforms {
 };
 
 struct WhatsNewItem {
-	/* Target OBS version (patch is ignored) */
+	/* Target FOV version (patch is ignored) */
 	std::string version;
 	/* Beta/RC release to target */
 	int Beta = 0;

@@ -61,11 +61,11 @@ class QMessageBox;
 class QWidgetAction;
 struct QuickTransition;
 
-namespace OBS {
+namespace FOV {
 class SceneCollection;
 struct Rect;
 enum class LogFileType;
-} // namespace OBS
+} // namespace FOV
 
 #define DESKTOP_AUDIO_1 Str("DesktopAudioDevice1")
 #define DESKTOP_AUDIO_2 Str("DesktopAudioDevice2")
@@ -139,7 +139,7 @@ struct OBSPromptRequest {
 using OBSPromptCallback = std::function<bool(const OBSPromptResult &result)>;
 
 using OBSProfileCache = std::map<std::string, OBSProfile>;
-using SceneCollection = OBS::SceneCollection;
+using SceneCollection = FOV::SceneCollection;
 using OBSSceneCollectionCache = std::unordered_map<std::string, SceneCollection>;
 
 template<typename T> static T GetOBSRef(QListWidgetItem *item)
@@ -634,7 +634,7 @@ private slots:
 
 	void on_resetUI_triggered();
 
-	void logUploadFinished(const QString &text, const QString &error, OBS::LogFileType uploadType);
+	void logUploadFinished(const QString &text, const QString &error, FOV::LogFileType uploadType);
 
 	void updateCheckFinished();
 
@@ -646,7 +646,7 @@ public:
 	void CreateEditTransformWindow(obs_sceneitem_t *item);
 	void CreatePropertiesWindow(obs_source_t *source);
 
-	void UploadLog(const char *subdir, const char *file, OBS::LogFileType uploadType);
+	void UploadLog(const char *subdir, const char *file, FOV::LogFileType uploadType);
 
 	/* -------------------------------------
 	 * MARK: - OBSBasic_MainMenu
@@ -823,7 +823,7 @@ private:
 	void UpdatePreviewOverflowSettings();
 	void UpdatePreviewControls();
 
-	/* OBS Callbacks */
+	/* FOV Callbacks */
 	static void RenderMain(void *data, uint32_t cx, uint32_t cy);
 
 	void ResizePreview(uint32_t cx, uint32_t cy);
@@ -1120,14 +1120,14 @@ public:
 	 * -------------------------------------
 	 */
 private:
-	std::vector<OBS::Canvas> canvases;
+	std::vector<FOV::Canvas> canvases;
 
 	static void CanvasRemoved(void *data, calldata_t *params);
 
 public:
-	const std::vector<OBS::Canvas> &GetCanvases() const noexcept { return canvases; }
+	const std::vector<FOV::Canvas> &GetCanvases() const noexcept { return canvases; }
 
-	const OBS::Canvas &AddCanvas(const std::string &name, obs_video_info *ovi = nullptr, int flags = 0);
+	const FOV::Canvas &AddCanvas(const std::string &name, obs_video_info *ovi = nullptr, int flags = 0);
 
 public slots:
 	bool RemoveCanvas(OBSCanvas canvas);
@@ -1157,7 +1157,7 @@ private:
 	QMenu *CreateVisibilityTransitionMenu(bool visible);
 	void CenterSelectedSceneItems(const CenterType &centerType);
 
-	/* OBS Callbacks */
+	/* FOV Callbacks */
 	static void SourceCreated(void *data, calldata_t *params);
 	static void SourceRemoved(void *data, calldata_t *params);
 	static void SourceActivated(void *data, calldata_t *params);
@@ -1256,7 +1256,7 @@ private:
 
 	void MoveSceneItem(enum obs_order_movement movement, const QString &action_name);
 
-	/* OBS Callbacks */
+	/* FOV Callbacks */
 	static void SceneReordered(void *data, calldata_t *params);
 	static void SceneRefreshed(void *data, calldata_t *params);
 	static void SceneItemAdded(void *data, calldata_t *params);

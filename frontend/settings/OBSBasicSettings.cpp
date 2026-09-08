@@ -2961,7 +2961,7 @@ void OBSBasicSettings::SaveGeneralSettings()
 			}
 		}
 
-		blog(LOG_INFO, "Hide OBS windows from screen capture: %s", hide_window ? "true" : "false");
+		blog(LOG_INFO, "Hide FOV windows from screen capture: %s", hide_window ? "true" : "false");
 	}
 #endif
 	if (WidgetChanged(ui->openStatsOnStartup))

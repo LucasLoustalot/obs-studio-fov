@@ -19,7 +19,7 @@
 
 #include <utility>
 
-namespace OBS {
+namespace FOV {
 
 Canvas::Canvas(obs_canvas_t *canvas) : canvas(canvas) {}
 
@@ -97,4 +97,4 @@ OBSDataArrayAutoRelease Canvas::SaveCanvases(const std::vector<Canvas> &canvases
 	return savedCanvases;
 }
 
-} // namespace OBS
+} // namespace FOV

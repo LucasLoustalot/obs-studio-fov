@@ -128,7 +128,7 @@ void OBSStudioAPI::obs_frontend_get_scene_collections(std::vector<std::string> &
 char *OBSStudioAPI::obs_frontend_get_current_scene_collection()
 {
 	try {
-		const OBS::SceneCollection &currentCollection = main->GetCurrentSceneCollection();
+		const FOV::SceneCollection &currentCollection = main->GetCurrentSceneCollection();
 		return bstrdup(currentCollection.getName().c_str());
 	} catch (const std::exception &error) {
 		blog(LOG_DEBUG, "%s", error.what());

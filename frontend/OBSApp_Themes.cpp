@@ -324,7 +324,7 @@ static vector<OBSThemeVariable> ParseThemeVariables(const char *themeData)
 		if (!cf_next_token(cfp))
 			return vars;
 
-		/* Special values passed to the theme by OBS are prefixed with 'obs', so we
+		/* Special values passed to the theme by FOV are prefixed with 'obs', so we
 		 * prevent theme variables from using it as a prefix. */
 		if (key.startsWith("obs"))
 			continue;
@@ -408,9 +408,9 @@ void OBSApp::FindThemes()
 {
 
 	QStringList filters;
-	filters << "*.obt" // OBS Base Theme
-		<< "*.ovt" // OBS Variant Theme
-		<< "*.oha" // OBS High-contrast Adjustment layer
+	filters << "*.obt" // FOV Base Theme
+		<< "*.ovt" // FOV Variant Theme
+		<< "*.oha" // FOV High-contrast Adjustment layer
 		;
 
 	{
@@ -660,7 +660,7 @@ static QString EvalMath(const QHash<QString, OBSThemeVariable> &vars, const OBST
 
 static qsizetype FindEndOfOBSMetadata(const QString &content)
 {
-	/* Find end of last OBS-specific section and strip it, kinda jank but should work */
+	/* Find end of last FOV-specific section and strip it, kinda jank but should work */
 	qsizetype end = 0;
 
 	for (auto section : {"OBSThemeMeta", "OBSThemeVars", "OBSTheme"}) {
@@ -877,7 +877,7 @@ bool OBSApp::SetTheme(const QString &name)
 		contents.emplaceBack(content.constData());
 	}
 
-	/* Check if OBS appearance settings are used in the theme */
+	/* Check if FOV appearance settings are used in the theme */
 	currentTheme->usesFontScale = false;
 	currentTheme->usesDensity = false;
 	for (const OBSThemeVariable &var : vars) {

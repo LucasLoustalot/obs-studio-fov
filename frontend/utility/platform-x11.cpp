@@ -140,7 +140,7 @@ struct RunOnce {
 		}
 	}
 } RO;
-const char *RunOnce::thr_name = "OBS runonce";
+const char *RunOnce::thr_name = "FOV runonce";
 
 void CheckIfAlreadyRunning(bool &already_running)
 {

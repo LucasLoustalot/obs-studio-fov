@@ -24,7 +24,7 @@
 #include "obs.h"
 #include "obs.hpp"
 
-namespace OBS {
+namespace FOV {
 class Canvas {
 
 public:
@@ -49,4 +49,4 @@ public:
 private:
 	obs_canvas_t *canvas = nullptr;
 };
-} // namespace OBS
+} // namespace FOV

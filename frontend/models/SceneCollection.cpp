@@ -19,7 +19,7 @@
 
 static constexpr std::string_view invalidCoordinateMode = "Invalid coordinate mode provided";
 
-namespace OBS {
+namespace FOV {
 std::string SceneCollection::getName() const
 {
 	return name_;
@@ -68,4 +68,4 @@ void SceneCollection::setMigrationResolution(Rect newResolution)
 {
 	migrationResolution_ = newResolution;
 }
-} // namespace OBS
+} // namespace FOV
