@@ -5,7 +5,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0-or-later</project_license>
   <name>FOV</name>
-  <developer id="com.obsproject">
+  <developer id="com.flexible_output_view">
     <name>The Flexible Output View Team</name>
   </developer>
   <summary>Live stream and record videos</summary>
