@@ -121,12 +121,11 @@ jobs:
 
   flatpak_build:
     name: FOV - Build Flatpak
-    runs-on: [ self-hosted, linux, x64, ubuntu ]
-    needs: check_program_compilation_linux
+    runs-on: ubuntu-latest
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
       options: --privileged
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -150,16 +149,13 @@ jobs:
   code_analyzer:
     name: Code analyzer cppcheck
     needs: check_program_compilation_linux
-    runs-on: ubuntu-latest
+    runs-on: [ self-hosted, linux, x64, ubuntu ]
     timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           submodules: recursive
-
-      - name: Install cppcheck
-        run: sudo apt update && sudo apt install cppcheck -y
 
       - name: Download Linux Build Folder
         uses: actions/download-artifact@v7
