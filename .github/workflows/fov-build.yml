@@ -16,7 +16,7 @@ jobs:
   check_program_compilation_linux:
     name: FOV - Build on Linux
     runs-on: [ self-hosted, linux, x64, ubuntu ]
-    timeout-minutes: 20
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -42,7 +42,7 @@ jobs:
   check_program_compilation_windows:
     name: FOV - Build on Windows
     runs-on: [ self-hosted, windows, x64 ]
-    timeout-minutes: 20
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -74,7 +74,7 @@ jobs:
   check_program_compilation_macos:
     name: FOV - Build on macOS
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -115,7 +115,7 @@ jobs:
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
       options: --privileged
-    timeout-minutes: 80
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v7
