@@ -85,11 +85,10 @@ jobs:
   check_program_compilation_macos:
     name: FOV - Build on macOS
     runs-on: macos-15
-
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -106,30 +105,61 @@ jobs:
           path: FOV-macos-arm64-debug.dmg
 
       - name: Build Release
-        if: github.ref_name == 'dev' || github.ref_name == 'master'
+        if: env.IS_RELEASE_BRANCH == 'true'
         run: ./.github/scripts/FOV/build_macos_release.sh
 
       - name: Package Release DMG
-        if: github.ref_name == 'dev' || github.ref_name == 'master'
+        if: env.IS_RELEASE_BRANCH == 'true'
         run: ./.github/scripts/FOV/package_dmg.sh build_macos FOV-macos-arm64-release.dmg
 
       - name: Upload macOS Release Artifact (DMG)
-        if: github.ref_name == 'dev' || github.ref_name == 'master'
+        if: env.IS_RELEASE_BRANCH == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: FOV-macos-arm64-release-dmg
           path: FOV-macos-arm64-release.dmg
 
+  flatpak_build:
+    name: FOV - Build Flatpak
+    runs-on: [ self-hosted, linux, x64, ubuntu ]
+    needs: check_program_compilation_linux
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
+      options: --privileged
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Build Flatpak Bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: build-aux/com.obsproject.Studio.json
+          bundle: FOV-x86_64.flatpak
+          branch: ${{ github.ref_name }}
+
+      - name: Upload Flatpak Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: FOV-linux-x64-flatpak
+          path: FOV-x86_64.flatpak
+
   code_analyzer:
     name: Code analyzer cppcheck
     needs: check_program_compilation_linux
-    runs-on: [ self-hosted, linux, x64, ubuntu ]
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           submodules: recursive
+
+      - name: Install cppcheck
+        run: sudo apt update && sudo apt install cppcheck -y
 
       - name: Download Linux Build Folder
         uses: actions/download-artifact@v7
