@@ -111,7 +111,7 @@ jobs:
   flatpak_build:
     name: FOV - Build Flatpak
     runs-on: ubuntu-latest
-    if: github.ref_name == 'dev' || github.ref_name == 'master'
+    if: github.ref_name == 'dev' || github.ref_name == 'master' || github.ref_name == 'flatpak'
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
       options: --privileged
@@ -126,7 +126,7 @@ jobs:
       - name: Build Flatpak Bundle
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          manifest-path: build-aux/com.obsproject.Studio.json
+          manifest-path: build-aux/com.flexible_output_view.FOV.json
           bundle: FOV-x86_64.flatpak
           branch: ${{ github.ref_name }}
 

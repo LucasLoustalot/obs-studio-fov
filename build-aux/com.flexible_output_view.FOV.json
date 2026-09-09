@@ -1,5 +1,5 @@
 {
-    "id": "com.obsproject.Studio",
+    "id": "com.flexible_output_view.FOV",
     "runtime": "org.kde.Platform",
     "runtime-version": "6.8",
     "sdk": "org.kde.Sdk",
@@ -20,7 +20,7 @@
         "--env=VST_PATH=/app/extensions/Plugins/vst"
     ],
     "add-extensions": {
-        "com.obsproject.Studio.Plugin": {
+        "com.flexible_output_view.FOV.Plugin": {
             "directory": "plugins",
             "subdirectories": true,
             "add-ld-path": "lib",
