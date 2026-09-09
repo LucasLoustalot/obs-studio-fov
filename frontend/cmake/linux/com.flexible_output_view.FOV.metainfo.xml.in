@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop">
-  <id>com.obsproject.Studio</id>
-  <launchable type="desktop-id">com.obsproject.Studio.desktop</launchable>
+  <id>com.flexible_output_view.FOV</id>
+  <launchable type="desktop-id">com.flexible_output_view.FOV.desktop</launchable>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0-or-later</project_license>
-  <name>OBS Studio</name>
-  <developer id="com.obsproject">
-    <name>OBS Project</name>
+  <name>FOV</name>
+  <developer id="com.flexible_output_view">
+    <name>The Flexible Output View Team</name>
   </developer>
   <summary>Live stream and record videos</summary>
   <description>
-    <p>Free and open source software for video capturing, recording, and live streaming.</p>
+    <p>Fork of OBS Studio, a free and open source software for video capturing, recording, and live streaming.</p>
     <p>Features:</p>
     <ul>
       <li>High performance real time video/audio capturing and mixing. Create scenes made up of multiple sources including window captures, images, text, browser windows, webcams, capture cards and more.</li>
@@ -28,8 +28,8 @@
       <li>Get a high level view of your production using the Multiview. Monitor 8 different scenes and easily cue or transition to any of them with merely a single or double click.</li>
     </ul>
   </description>
-  <url type="homepage">https://obsproject.com</url>
-  <url type="bugtracker">https://github.com/obsproject/obs-studio/issues</url>
+  <url type="homepage">https://fovapp.live</url>
+  <url type="bugtracker">https://github.com/Flexible-Output-View/obs-studio-fov/issues</url>
   <url type="donation">https://obsproject.com/contribute</url>
   <url type="translate">https://crowdin.com/project/obs-studio</url>
 

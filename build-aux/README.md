@@ -47,13 +47,13 @@ This script allows to check the formatting and/or format of the Flatpak manifest
 
 Example of use:
 ```sh
-python3 ./build-aux/format-manifest.py com.obsproject.Studio.json
+python3 ./build-aux/format-manifest.py com.flexible_output_view.FOV.json
 ```
 
 ## OBS Studio Flatpak Manifest
 
 The manifest is composed of multiple files:
- - The main manifest `com.obsproject.Studio.json`
+ - The main manifest `com.flexible_output_view.FOV.json`
  - The `modules` folder which contains OBS Studio dependencies modules
 
 ### Manifest modules
